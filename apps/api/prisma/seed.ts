@@ -7,6 +7,10 @@ async function main() {
   console.log('Seeding database…');
 
   // Clear in dependency order
+  await prisma.payment.deleteMany();
+  await prisma.invoiceItem.deleteMany();
+  await prisma.invoice.deleteMany();
+  await prisma.feeCategory.deleteMany();
   await prisma.hostelAllocation.deleteMany();
   await prisma.score.deleteMany();
   await prisma.caWeight.deleteMany();
@@ -32,7 +36,7 @@ async function main() {
       boardingType: 'HYBRID',
       subStatus:    'ACTIVE',
       subTier:      'ENTERPRISE',
-      featureFlags: { sports: true, alumni: true },
+      featureFlags: { sports: true, alumni: true, finance: true },
       branding:     { primaryColor: '#15803d', schoolMotto: 'In omnia paratus' },
     },
   });
@@ -158,7 +162,7 @@ async function main() {
     }),
   ]);
 
-  const [student1] = await Promise.all([
+  const [student1, student2] = await Promise.all([
     prisma.student.create({
       data: { tenantId: tenant.id, userId: su1.id, admissionNo: 'KCL/2024/001', classId: class2.id, boardingStatus: 'BOARDER' },
     }),
@@ -201,6 +205,97 @@ async function main() {
       await prisma.bed.create({ data: { tenantId: tenant.id, dormitoryId: girlsDorm.id, roomNumber: `G${room}`, bedNumber: `${bed}`, status: 'VACANT' } });
     }
   }
+
+  // ── Fee categories ────────────────────────────────────────────────────────
+  const [catFees, catBooks, catUniform, catLab, catExam] = await Promise.all([
+    prisma.feeCategory.create({ data: { tenantId: tenant.id, name: 'School Fees',   description: 'Tuition for the term',            defaultAmount: 500.00 } }),
+    prisma.feeCategory.create({ data: { tenantId: tenant.id, name: 'Books',         description: 'Prescribed textbooks & materials', defaultAmount:  80.00 } }),
+    prisma.feeCategory.create({ data: { tenantId: tenant.id, name: 'Uniform',       description: 'School uniform set',               defaultAmount:  60.00 } }),
+    prisma.feeCategory.create({ data: { tenantId: tenant.id, name: 'Lab Fee',       description: 'Science laboratory usage',         defaultAmount:  40.00 } }),
+    prisma.feeCategory.create({ data: { tenantId: tenant.id, name: 'Exam Fee',      description: 'End-of-term examination fee',      defaultAmount:  30.00 } }),
+  ]);
+
+  // ── Invoice 1 — PAID (student1, First Term) ───────────────────────────────
+  const invoice1 = await prisma.invoice.create({
+    data: {
+      tenantId:    tenant.id,
+      studentId:   student1.id,
+      sessionId:   session.id,
+      term:        'FIRST',
+      status:      'PAID',
+      totalAmount: 710.00,
+      dueDate:     new Date('2024-10-01'),
+      notes:       'Full payment received',
+      items: {
+        create: [
+          { tenantId: tenant.id, feeCategoryId: catFees.id,    description: 'First Term Tuition', amount: 500.00 },
+          { tenantId: tenant.id, feeCategoryId: catBooks.id,   description: null,                 amount:  80.00 },
+          { tenantId: tenant.id, feeCategoryId: catUniform.id, description: null,                 amount:  60.00 },
+          { tenantId: tenant.id, feeCategoryId: catExam.id,    description: null,                 amount:  30.00 },
+          { tenantId: tenant.id, feeCategoryId: catLab.id,     description: null,                 amount:  40.00 },
+        ],
+      },
+    },
+  });
+
+  // Payment record for invoice1
+  await prisma.payment.create({
+    data: {
+      tenantId:      tenant.id,
+      invoiceId:     invoice1.id,
+      amount:        710.00,
+      currency:      'USD',
+      gateway:       'PAYPAL',
+      gatewayRef:    'PAYPAL-DEMO-ORDER-001',
+      gatewayStatus: 'COMPLETED',
+      status:        'COMPLETED',
+      paidAt:        new Date('2024-09-15'),
+    },
+  });
+
+  // ── Invoice 2 — UNPAID (student2, First Term) ──────────────────────────────
+  await prisma.invoice.create({
+    data: {
+      tenantId:    tenant.id,
+      studentId:   student2.id,
+      sessionId:   session.id,
+      term:        'FIRST',
+      status:      'UNPAID',
+      totalAmount: 640.00,
+      dueDate:     new Date('2024-10-01'),
+      notes:       null,
+      items: {
+        create: [
+          { tenantId: tenant.id, feeCategoryId: catFees.id,    description: 'First Term Tuition', amount: 500.00 },
+          { tenantId: tenant.id, feeCategoryId: catBooks.id,   description: null,                 amount:  80.00 },
+          { tenantId: tenant.id, feeCategoryId: catExam.id,    description: null,                 amount:  30.00 },
+          { tenantId: tenant.id, feeCategoryId: catLab.id,     description: null,                 amount:  40.00 },
+        ],
+      },
+    },
+  });
+
+  // ── Invoice 3 — OVERDUE (student1, Second Term) ────────────────────────────
+  await prisma.invoice.create({
+    data: {
+      tenantId:    tenant.id,
+      studentId:   student1.id,
+      sessionId:   session.id,
+      term:        'SECOND',
+      status:      'OVERDUE',
+      totalAmount: 580.00,
+      dueDate:     new Date('2025-02-01'),
+      notes:       'Payment overdue — please settle immediately',
+      items: {
+        create: [
+          { tenantId: tenant.id, feeCategoryId: catFees.id,  description: 'Second Term Tuition', amount: 500.00 },
+          { tenantId: tenant.id, feeCategoryId: catExam.id,  description: null,                  amount:  30.00 },
+          { tenantId: tenant.id, feeCategoryId: catLab.id,   description: null,                  amount:  40.00 },
+          { tenantId: tenant.id, feeCategoryId: catUniform.id, description: 'Replacement set',   amount:  10.00 },
+        ],
+      },
+    },
+  });
 
   // ── Print credentials ─────────────────────────────────────────────────────
   console.log('\nSeed complete ✓');

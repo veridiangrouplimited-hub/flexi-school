@@ -7,10 +7,14 @@ import { errorHandler } from './middleware/errorHandler';
 import { authRouter } from './modules/auth/auth.router';
 import { academicRouter } from './modules/academic/academic.router';
 import { hostelRouter } from './modules/hostel/hostel.router';
+import { financeRouter } from './modules/finance/finance.router';
 
 const app = express();
 
 app.use(express.json());
+
+// Health check
+app.get('/', (_req, res) => res.json({ status: 'ok', service: 'FlexiSchool API' }));
 
 // Public routes
 app.use('/auth', authRouter);
@@ -19,6 +23,7 @@ app.use('/auth', authRouter);
 app.use('/api', authenticate, tenantIsolation, requireWriteAccess);
 app.use('/api/academic', academicRouter);
 app.use('/api/hostel', requireFlag('hostel'), hostelRouter);
+app.use('/api/finance', requireFlag('finance'), financeRouter);
 
 app.use((_req, res) => {
   res.status(404).json({ code: 'NOT_FOUND', message: 'Route not found' });

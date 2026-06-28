@@ -112,6 +112,7 @@ type TenantRow = {
   level: string; boardingType: string; subStatus: string; subTier: string;
   featureFlags: unknown; branding: unknown;
 };
+// subTier is already in TenantRow above — used by buildTenantPayload
 
 function buildTenantPayload(tenant: TenantRow) {
   const overrides = (tenant.featureFlags as Record<string, boolean>) ?? {};
@@ -129,6 +130,7 @@ function buildTenantPayload(tenant: TenantRow) {
     level:        tenant.level,
     boardingType: tenant.boardingType,
     subStatus:    tenant.subStatus,
+    subTier:      tenant.subTier,
     flags,
     branding:     (tenant.branding as Record<string, string>) ?? {},
   };

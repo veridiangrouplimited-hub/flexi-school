@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { Link } from 'react-router-dom';
 import { Calendar, BookOpen, Building2, Users } from 'lucide-react';
 import { useTenant } from '../context/TenantContext';
 import { api } from '../lib/api';
@@ -29,7 +30,7 @@ export function DashboardPage() {
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard icon={Building2} label="School"    value={name} />
         <StatCard icon={Calendar}  label="Session"   value={current?.name ?? '—'} />
-        <StatCard icon={BookOpen}  label="Plan"      value={subTier.replace('_', ' ')} />
+        <StatCard icon={BookOpen}  label="Plan"      value={(subTier ?? '—').replace(/_/g, ' ')} />
         <StatCard
           icon={Users}
           label="Status"
@@ -72,18 +73,25 @@ function StatCard({
 }
 
 function ModuleChip({ label, href, enabled }: { label: string; href: string; enabled: boolean }) {
+  const cls = [
+    'flex items-center justify-between rounded-lg border px-3 py-2.5 text-sm font-medium transition-colors',
+    enabled
+      ? 'border-slate-200 bg-white text-slate-700 hover:border-brand-300 hover:bg-brand-50 hover:text-brand-800'
+      : 'border-slate-100 bg-slate-50 text-slate-400 cursor-not-allowed pointer-events-none',
+  ].join(' ');
+
+  if (!enabled) {
+    return (
+      <div className={cls}>
+        {label}
+        <span className="text-xs font-normal">locked</span>
+      </div>
+    );
+  }
+
   return (
-    <a
-      href={enabled ? href : undefined}
-      className={[
-        'flex items-center justify-between rounded-lg border px-3 py-2.5 text-sm font-medium transition-colors',
-        enabled
-          ? 'border-slate-200 bg-white text-slate-700 hover:border-brand-300 hover:bg-brand-50 hover:text-brand-800 cursor-pointer'
-          : 'border-slate-100 bg-slate-50 text-slate-400 cursor-not-allowed',
-      ].join(' ')}
-    >
+    <Link to={href} className={cls}>
       {label}
-      {!enabled && <span className="text-xs font-normal">locked</span>}
-    </a>
+    </Link>
   );
 }

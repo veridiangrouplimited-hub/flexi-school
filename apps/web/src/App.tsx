@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { TenantProvider } from './context/TenantContext';
 import { useAuthStore } from './stores/authStore';
@@ -15,14 +15,30 @@ import { FinancePage } from './pages/FinancePage';
 import { AlumniPage } from './pages/AlumniPage';
 import { NoticesPage } from './pages/NoticesPage';
 import { SettingsPage } from './pages/SettingsPage';
+import { PaymentSuccessPage } from './pages/PaymentSuccessPage';
+import { PaymentCancelPage } from './pages/PaymentCancelPage';
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, staleTime: 30_000 } },
 });
 
+// Wraps protected routes — redirects to /login if not authenticated
+function ProtectedLayout() {
+  const token  = useAuthStore((s) => s.token);
+  const tenant = useTenantStore((s) => s.tenant);
+
+  if (!token || !tenant) return <Navigate to="/login" replace />;
+
+  return (
+    <TenantProvider tenant={tenant}>
+      <AppShell />
+    </TenantProvider>
+  );
+}
+
 export function App() {
   const { token, setSession, clear } = useAuthStore();
-  const { tenant, setTenant }        = useTenantStore();
+  const { setTenant }                = useTenantStore();
   const [booting, setBooting]        = useState(true);
 
   // On mount: if a token is persisted, rehydrate user + tenant from /auth/me
@@ -54,35 +70,28 @@ export function App() {
     );
   }
 
-  const authenticated = !!token && !!tenant;
-
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
         <Routes>
-          <Route
-            path="/login"
-            element={
-              authenticated
-                ? <Navigate to="/dashboard" replace />
-                : <LoginPage />
-            }
-          />
+          {/* Public */}
+          <Route path="/login" element={<LoginPage />} />
 
-          {authenticated && tenant ? (
-            <Route element={<TenantProvider tenant={tenant}><AppShell /></TenantProvider>}>
-              <Route index element={<Navigate to="/dashboard" replace />} />
-              <Route path="/dashboard"  element={<DashboardPage />} />
-              <Route path="/academics"  element={<AcademicsPage />} />
-              <Route path="/hostel"     element={<HostelPage />} />
-              <Route path="/attendance" element={<AttendancePage />} />
-              <Route path="/sports"     element={<SportsPage />} />
-              <Route path="/finance"    element={<FinancePage />} />
-              <Route path="/alumni"     element={<AlumniPage />} />
-              <Route path="/notices"    element={<NoticesPage />} />
-              <Route path="/settings"   element={<SettingsPage />} />
-            </Route>
-          ) : null}
+          {/* Protected — ProtectedLayout handles the auth gate */}
+          <Route element={<ProtectedLayout />}>
+            <Route index element={<Navigate to="/dashboard" replace />} />
+            <Route path="/dashboard"  element={<DashboardPage />} />
+            <Route path="/academics"  element={<AcademicsPage />} />
+            <Route path="/hostel"     element={<HostelPage />} />
+            <Route path="/attendance" element={<AttendancePage />} />
+            <Route path="/sports"     element={<SportsPage />} />
+            <Route path="/finance"                   element={<FinancePage />} />
+            <Route path="/finance/payment/success"  element={<PaymentSuccessPage />} />
+            <Route path="/finance/payment/cancel"   element={<PaymentCancelPage />} />
+            <Route path="/alumni"     element={<AlumniPage />} />
+            <Route path="/notices"    element={<NoticesPage />} />
+            <Route path="/settings"   element={<SettingsPage />} />
+          </Route>
 
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>

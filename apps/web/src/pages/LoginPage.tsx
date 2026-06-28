@@ -1,10 +1,12 @@
 import { useState, type FormEvent } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { GraduationCap } from 'lucide-react';
 import { useAuthStore } from '../stores/authStore';
 import { useTenantStore } from '../stores/tenantStore';
 import type { TenantState } from '../context/TenantContext';
 
 export function LoginPage() {
+  const navigate        = useNavigate();
   const { setSession }  = useAuthStore();
   const { setTenant }   = useTenantStore();
   const [email, setEmail]       = useState('');
@@ -38,6 +40,7 @@ export function LoginPage() {
         token:       data.token,
       });
       setTenant(data.tenant as TenantState);
+      navigate('/dashboard', { replace: true });
     } catch {
       setError('Network error. Please try again.');
     } finally {

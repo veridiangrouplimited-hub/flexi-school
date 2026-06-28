@@ -6,6 +6,7 @@ export interface TenantState {
   level: 'PRIMARY' | 'SECONDARY' | 'K_12';
   boardingType: 'DAY_ONLY' | 'BOARDING_ONLY' | 'HYBRID';
   subStatus: 'ACTIVE' | 'PAST_DUE' | 'SUSPENDED';
+  subTier: 'STARTER' | 'PROFESSIONAL' | 'ENTERPRISE';
   flags: Record<string, boolean>;
   branding: {
     logoUrl?: string;

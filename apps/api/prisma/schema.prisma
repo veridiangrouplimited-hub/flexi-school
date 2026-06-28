@@ -7,37 +7,309 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// ─── TENANTS ─────────────────────────────────────────────────────────────────
-
 model Tenant {
-  id           String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  name         String
-  subdomain    String      @unique
-  level        Level
-  boardingType BoardingType
-  subStatus    SubStatus   @default(ACTIVE)
-  subTier      SubTier     @default(STARTER)
-  featureFlags Json        @default("{}")
-  branding     Json        @default("{}")
-  createdAt    DateTime    @default(now())
-  updatedAt    DateTime    @updatedAt
-
-  roles             Role[]
-  users             User[]
+  id                String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name              String
+  subdomain         String             @unique
+  level             Level
+  boardingType      BoardingType
+  subStatus         SubStatus          @default(ACTIVE)
+  subTier           SubTier            @default(STARTER)
+  featureFlags      Json               @default("{}")
+  branding          Json               @default("{}")
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
   academicSessions  AcademicSession[]
-  gradingScales     GradingScale[]
-  subjects          Subject[]
-  classes           Class[]
-  students          Student[]
-  caWeights         CaWeight[]
-  scores            Score[]
-  dormitories       Dormitory[]
   beds              Bed[]
+  caWeights         CaWeight[]
+  classes           Class[]
+  dormitories       Dormitory[]
+  feeCategories     FeeCategory[]
+  gradingScales     GradingScale[]
   hostelAllocations HostelAllocation[]
-  sportsHouses      SportsHouse[]
+  invoiceItems      InvoiceItem[]
+  invoices          Invoice[]
+  payments          Payment[]
+  roles             Role[]
+  scores            Score[]
   sportsEvents      SportsEvent[]
+  sportsHouses      SportsHouse[]
+  students          Student[]
+  subjects          Subject[]
+  users             User[]
 
   @@map("tenants")
+}
+
+model Role {
+  id          String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId    String? @db.Uuid
+  name        String
+  permissions Json    @default("[]")
+  tenant      Tenant? @relation(fields: [tenantId], references: [id])
+  users       User[]
+
+  @@unique([tenantId, name])
+  @@map("roles")
+}
+
+model User {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId        String?  @db.Uuid
+  email           String   @unique
+  passwordHash    String
+  roleId          String   @db.Uuid
+  profile         Json     @default("{}")
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  submittedScores Score[]  @relation("ScoreSubmitter")
+  student         Student?
+  role            Role     @relation(fields: [roleId], references: [id])
+  tenant          Tenant?  @relation(fields: [tenantId], references: [id])
+
+  @@map("users")
+}
+
+model AcademicSession {
+  id                String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId          String             @db.Uuid
+  name              String
+  startDate         DateTime?          @db.Date
+  endDate           DateTime?          @db.Date
+  isCurrent         Boolean            @default(false)
+  tenant            Tenant             @relation(fields: [tenantId], references: [id])
+  classes           Class[]
+  hostelAllocations HostelAllocation[]
+  invoices          Invoice[]
+  scores            Score[]
+
+  @@map("academic_sessions")
+}
+
+model GradingScale {
+  id       String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId String    @db.Uuid
+  name     String
+  bands    Json
+  tenant   Tenant    @relation(fields: [tenantId], references: [id])
+  subjects Subject[]
+
+  @@map("grading_scales")
+}
+
+model Subject {
+  id             String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId       String        @db.Uuid
+  name           String
+  code           String?
+  department     String?
+  gradingScaleId String?       @db.Uuid
+  caWeights      CaWeight[]
+  scores         Score[]
+  gradingScale   GradingScale? @relation(fields: [gradingScaleId], references: [id])
+  tenant         Tenant        @relation(fields: [tenantId], references: [id])
+
+  @@map("subjects")
+}
+
+model Class {
+  id        String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId  String          @db.Uuid
+  name      String
+  level     String?
+  arm       String?
+  sessionId String          @db.Uuid
+  session   AcademicSession @relation(fields: [sessionId], references: [id])
+  tenant    Tenant          @relation(fields: [tenantId], references: [id])
+  students  Student[]
+
+  @@map("classes")
+}
+
+model Student {
+  id                String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId          String             @db.Uuid
+  userId            String?            @unique @db.Uuid
+  admissionNo       String
+  classId           String?            @db.Uuid
+  boardingStatus    BoardingStatus     @default(DAY)
+  sportsHouseId     String?            @db.Uuid
+  createdAt         DateTime           @default(now())
+  hostelAllocations HostelAllocation[]
+  invoices          Invoice[]
+  scores            Score[]
+  class             Class?             @relation(fields: [classId], references: [id])
+  sportsHouse       SportsHouse?       @relation(fields: [sportsHouseId], references: [id])
+  tenant            Tenant             @relation(fields: [tenantId], references: [id])
+  user              User?              @relation(fields: [userId], references: [id])
+
+  @@unique([tenantId, admissionNo])
+  @@map("students")
+}
+
+model CaWeight {
+  id         String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId   String  @db.Uuid
+  subjectId  String  @db.Uuid
+  components Json
+  subject    Subject @relation(fields: [subjectId], references: [id])
+  tenant     Tenant  @relation(fields: [tenantId], references: [id])
+
+  @@map("ca_weights")
+}
+
+model Score {
+  id          String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId    String          @db.Uuid
+  studentId   String          @db.Uuid
+  subjectId   String          @db.Uuid
+  sessionId   String          @db.Uuid
+  term        Term
+  components  Json
+  total       Decimal         @db.Decimal(5, 2)
+  submittedBy String?         @db.Uuid
+  submittedAt DateTime        @default(now())
+  session     AcademicSession @relation(fields: [sessionId], references: [id])
+  student     Student         @relation(fields: [studentId], references: [id])
+  subject     Subject         @relation(fields: [subjectId], references: [id])
+  submitter   User?           @relation("ScoreSubmitter", fields: [submittedBy], references: [id])
+  tenant      Tenant          @relation(fields: [tenantId], references: [id])
+
+  @@unique([tenantId, studentId, subjectId, sessionId, term])
+  @@map("scores")
+}
+
+model Dormitory {
+  id       String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId String @db.Uuid
+  name     String
+  gender   Gender
+  capacity Int
+  beds     Bed[]
+  tenant   Tenant @relation(fields: [tenantId], references: [id])
+
+  @@map("dormitories")
+}
+
+model Bed {
+  id          String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId    String             @db.Uuid
+  dormitoryId String             @db.Uuid
+  roomNumber  String
+  bedNumber   String
+  status      BedStatus          @default(VACANT)
+  dormitory   Dormitory          @relation(fields: [dormitoryId], references: [id])
+  tenant      Tenant             @relation(fields: [tenantId], references: [id])
+  allocations HostelAllocation[]
+
+  @@unique([tenantId, dormitoryId, roomNumber, bedNumber])
+  @@map("beds")
+}
+
+model HostelAllocation {
+  id          String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId    String          @db.Uuid
+  bedId       String          @db.Uuid
+  studentId   String          @db.Uuid
+  sessionId   String          @db.Uuid
+  allocatedAt DateTime        @default(now())
+  bed         Bed             @relation(fields: [bedId], references: [id])
+  session     AcademicSession @relation(fields: [sessionId], references: [id])
+  student     Student         @relation(fields: [studentId], references: [id])
+  tenant      Tenant          @relation(fields: [tenantId], references: [id])
+
+  @@unique([tenantId, studentId, sessionId])
+  @@map("hostel_allocations")
+}
+
+model SportsHouse {
+  id        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId  String    @db.Uuid
+  name      String
+  colour    String?
+  captainId String?   @db.Uuid
+  tenant    Tenant    @relation(fields: [tenantId], references: [id])
+  students  Student[]
+
+  @@map("sports_houses")
+}
+
+model SportsEvent {
+  id        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId  String    @db.Uuid
+  name      String
+  eventDate DateTime? @db.Date
+  category  String?
+  results   Json      @default("[]")
+  tenant    Tenant    @relation(fields: [tenantId], references: [id])
+
+  @@map("sports_events")
+}
+
+model FeeCategory {
+  id            String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId      String        @db.Uuid
+  name          String
+  description   String?
+  defaultAmount Decimal?      @db.Decimal(10, 2)
+  isActive      Boolean       @default(true)
+  tenant        Tenant        @relation(fields: [tenantId], references: [id])
+  items         InvoiceItem[]
+
+  @@map("fee_categories")
+}
+
+model Invoice {
+  id          String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId    String          @db.Uuid
+  studentId   String          @db.Uuid
+  sessionId   String          @db.Uuid
+  term        Term
+  status      InvoiceStatus   @default(UNPAID)
+  totalAmount Decimal         @db.Decimal(10, 2)
+  dueDate     DateTime?       @db.Date
+  notes       String?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  items       InvoiceItem[]
+  session     AcademicSession @relation(fields: [sessionId], references: [id])
+  student     Student         @relation(fields: [studentId], references: [id])
+  tenant      Tenant          @relation(fields: [tenantId], references: [id])
+  payments    Payment[]
+
+  @@map("invoices")
+}
+
+model InvoiceItem {
+  id            String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId      String      @db.Uuid
+  invoiceId     String      @db.Uuid
+  feeCategoryId String      @db.Uuid
+  description   String?
+  amount        Decimal     @db.Decimal(10, 2)
+  feeCategory   FeeCategory @relation(fields: [feeCategoryId], references: [id])
+  invoice       Invoice     @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  tenant        Tenant      @relation(fields: [tenantId], references: [id])
+
+  @@map("invoice_items")
+}
+
+model Payment {
+  id            String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId      String         @db.Uuid
+  invoiceId     String         @db.Uuid
+  amount        Decimal        @db.Decimal(10, 2)
+  currency      String         @default("USD")
+  gateway       PaymentGateway
+  gatewayRef    String?
+  gatewayStatus String?
+  status        PaymentStatus  @default(PENDING)
+  paidAt        DateTime?
+  createdAt     DateTime       @default(now())
+  invoice       Invoice        @relation(fields: [invoiceId], references: [id])
+  tenant        Tenant         @relation(fields: [tenantId], references: [id])
+
+  @@map("payments")
 }
 
 enum Level {
@@ -64,158 +336,9 @@ enum SubTier {
   ENTERPRISE
 }
 
-// ─── RBAC ────────────────────────────────────────────────────────────────────
-
-model Role {
-  id          String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenantId    String? @db.Uuid
-  name        String
-  permissions Json    @default("[]")
-
-  tenant Tenant? @relation(fields: [tenantId], references: [id])
-  users  User[]
-
-  @@unique([tenantId, name])
-  @@map("roles")
-}
-
-model User {
-  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenantId     String?  @db.Uuid
-  email        String   @unique
-  passwordHash String
-  roleId       String   @db.Uuid
-  profile      Json     @default("{}")
-  isActive     Boolean  @default(true)
-  createdAt    DateTime @default(now())
-
-  tenant          Tenant?  @relation(fields: [tenantId], references: [id])
-  role            Role     @relation(fields: [roleId], references: [id])
-  student         Student?
-  submittedScores Score[]  @relation("ScoreSubmitter")
-
-  @@map("users")
-}
-
-// ─── ACADEMIC CORE ───────────────────────────────────────────────────────────
-
-model AcademicSession {
-  id        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenantId  String    @db.Uuid
-  name      String
-  startDate DateTime? @db.Date
-  endDate   DateTime? @db.Date
-  isCurrent Boolean   @default(false)
-
-  tenant            Tenant             @relation(fields: [tenantId], references: [id])
-  classes           Class[]
-  scores            Score[]
-  hostelAllocations HostelAllocation[]
-
-  @@map("academic_sessions")
-}
-
-model GradingScale {
-  id       String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenantId String @db.Uuid
-  name     String
-  bands    Json
-
-  tenant   Tenant    @relation(fields: [tenantId], references: [id])
-  subjects Subject[]
-
-  @@map("grading_scales")
-}
-
-model Subject {
-  id             String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenantId       String  @db.Uuid
-  name           String
-  code           String?
-  department     String?
-  gradingScaleId String? @db.Uuid
-
-  tenant       Tenant        @relation(fields: [tenantId], references: [id])
-  gradingScale GradingScale? @relation(fields: [gradingScaleId], references: [id])
-  caWeights    CaWeight[]
-  scores       Score[]
-
-  @@map("subjects")
-}
-
-model Class {
-  id        String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenantId  String  @db.Uuid
-  name      String
-  level     String?
-  arm       String?
-  sessionId String  @db.Uuid
-
-  tenant   Tenant          @relation(fields: [tenantId], references: [id])
-  session  AcademicSession @relation(fields: [sessionId], references: [id])
-  students Student[]
-
-  @@map("classes")
-}
-
-model Student {
-  id             String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenantId       String        @db.Uuid
-  userId         String?       @unique @db.Uuid
-  admissionNo    String
-  classId        String?       @db.Uuid
-  boardingStatus BoardingStatus @default(DAY)
-  sportsHouseId  String?       @db.Uuid
-  createdAt      DateTime      @default(now())
-
-  tenant            Tenant             @relation(fields: [tenantId], references: [id])
-  user              User?              @relation(fields: [userId], references: [id])
-  class             Class?             @relation(fields: [classId], references: [id])
-  sportsHouse       SportsHouse?       @relation(fields: [sportsHouseId], references: [id])
-  scores            Score[]
-  hostelAllocations HostelAllocation[]
-
-  @@unique([tenantId, admissionNo])
-  @@map("students")
-}
-
 enum BoardingStatus {
   DAY
   BOARDER
-}
-
-model CaWeight {
-  id         String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenantId   String @db.Uuid
-  subjectId  String @db.Uuid
-  components Json
-
-  tenant  Tenant  @relation(fields: [tenantId], references: [id])
-  subject Subject @relation(fields: [subjectId], references: [id])
-
-  @@map("ca_weights")
-}
-
-model Score {
-  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenantId    String   @db.Uuid
-  studentId   String   @db.Uuid
-  subjectId   String   @db.Uuid
-  sessionId   String   @db.Uuid
-  term        Term
-  components  Json
-  total       Decimal  @db.Decimal(5, 2)
-  submittedBy String?  @db.Uuid
-  submittedAt DateTime @default(now())
-
-  tenant    Tenant          @relation(fields: [tenantId], references: [id])
-  student   Student         @relation(fields: [studentId], references: [id])
-  subject   Subject         @relation(fields: [subjectId], references: [id])
-  session   AcademicSession @relation(fields: [sessionId], references: [id])
-  submitter User?           @relation("ScoreSubmitter", fields: [submittedBy], references: [id])
-
-  @@unique([tenantId, studentId, subjectId, sessionId, term])
-  @@map("scores")
 }
 
 enum Term {
@@ -224,41 +347,10 @@ enum Term {
   THIRD
 }
 
-// ─── HOSTEL / BOARDING ───────────────────────────────────────────────────────
-
-model Dormitory {
-  id       String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenantId String @db.Uuid
-  name     String
-  gender   Gender
-  capacity Int
-
-  tenant Tenant @relation(fields: [tenantId], references: [id])
-  beds   Bed[]
-
-  @@map("dormitories")
-}
-
 enum Gender {
   MALE
   FEMALE
   MIXED
-}
-
-model Bed {
-  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenantId    String    @db.Uuid
-  dormitoryId String    @db.Uuid
-  roomNumber  String
-  bedNumber   String
-  status      BedStatus @default(VACANT)
-
-  tenant      Tenant             @relation(fields: [tenantId], references: [id])
-  dormitory   Dormitory          @relation(fields: [dormitoryId], references: [id])
-  allocations HostelAllocation[]
-
-  @@unique([tenantId, dormitoryId, roomNumber, bedNumber])
-  @@map("beds")
 }
 
 enum BedStatus {
@@ -267,47 +359,24 @@ enum BedStatus {
   MAINTENANCE
 }
 
-model HostelAllocation {
-  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenantId    String   @db.Uuid
-  bedId       String   @db.Uuid
-  studentId   String   @db.Uuid
-  sessionId   String   @db.Uuid
-  allocatedAt DateTime @default(now())
-
-  tenant  Tenant          @relation(fields: [tenantId], references: [id])
-  bed     Bed             @relation(fields: [bedId], references: [id])
-  student Student         @relation(fields: [studentId], references: [id])
-  session AcademicSession @relation(fields: [sessionId], references: [id])
-
-  @@unique([tenantId, studentId, sessionId])
-  @@map("hostel_allocations")
+enum InvoiceStatus {
+  UNPAID
+  PARTIAL
+  PAID
+  OVERDUE
+  CANCELLED
 }
 
-// ─── SPORTS ──────────────────────────────────────────────────────────────────
-
-model SportsHouse {
-  id        String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenantId  String  @db.Uuid
-  name      String
-  colour    String?
-  captainId String? @db.Uuid
-
-  tenant   Tenant    @relation(fields: [tenantId], references: [id])
-  students Student[]
-
-  @@map("sports_houses")
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
 }
 
-model SportsEvent {
-  id        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenantId  String    @db.Uuid
-  name      String
-  eventDate DateTime? @db.Date
-  category  String?
-  results   Json      @default("[]")
-
-  tenant Tenant @relation(fields: [tenantId], references: [id])
-
-  @@map("sports_events")
+enum PaymentGateway {
+  PAYPAL
+  STRIPE
+  BANK_TRANSFER
+  CASH
 }
