@@ -1,0 +1,22 @@
+{
+  "name": "flexischool",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "apps/api",
+    "apps/web"
+  ],
+  "scripts": {
+    "dev":        "concurrently \"npm run dev -w apps/api\" \"npm run dev -w apps/web\"",
+    "build":      "npm run build -w apps/api && npm run build -w apps/web",
+    "test:e2e":   "npx playwright test --config=tests/e2e/playwright.config.ts",
+    "test:unit":  "npm run test -w apps/api && npm run test -w apps/web",
+    "db:migrate": "npm run db:migrate -w apps/api",
+    "db:seed":    "npm run db:seed -w apps/api"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.45.0",
+    "concurrently":     "^8.2.2",
+    "typescript":       "^5.5.2"
+  }
+}
