@@ -20,6 +20,7 @@ model Tenant {
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
   academicSessions  AcademicSession[]
+  attendance        Attendance[]
   beds              Bed[]
   caWeights         CaWeight[]
   classes           Class[]
@@ -29,6 +30,7 @@ model Tenant {
   hostelAllocations HostelAllocation[]
   invoiceItems      InvoiceItem[]
   invoices          Invoice[]
+  notices           Notice[]
   payments          Payment[]
   roles             Role[]
   scores            Score[]
@@ -62,10 +64,12 @@ model User {
   profile         Json     @default("{}")
   isActive        Boolean  @default(true)
   createdAt       DateTime @default(now())
-  submittedScores Score[]  @relation("ScoreSubmitter")
-  student         Student?
-  role            Role     @relation(fields: [roleId], references: [id])
-  tenant          Tenant?  @relation(fields: [tenantId], references: [id])
+  submittedScores    Score[]      @relation("ScoreSubmitter")
+  markedAttendances  Attendance[] @relation("AttendanceMarker")
+  authoredNotices    Notice[]     @relation("NoticeAuthor")
+  student            Student?
+  role               Role         @relation(fields: [roleId], references: [id])
+  tenant             Tenant?      @relation(fields: [tenantId], references: [id])
 
   @@map("users")
 }
@@ -78,6 +82,7 @@ model AcademicSession {
   endDate           DateTime?          @db.Date
   isCurrent         Boolean            @default(false)
   tenant            Tenant             @relation(fields: [tenantId], references: [id])
+  attendance        Attendance[]
   classes           Class[]
   hostelAllocations HostelAllocation[]
   invoices          Invoice[]
@@ -119,9 +124,10 @@ model Class {
   level     String?
   arm       String?
   sessionId String          @db.Uuid
-  session   AcademicSession @relation(fields: [sessionId], references: [id])
-  tenant    Tenant          @relation(fields: [tenantId], references: [id])
-  students  Student[]
+  session    AcademicSession @relation(fields: [sessionId], references: [id])
+  tenant     Tenant          @relation(fields: [tenantId], references: [id])
+  students   Student[]
+  attendance Attendance[]
 
   @@map("classes")
 }
@@ -135,6 +141,7 @@ model Student {
   boardingStatus    BoardingStatus     @default(DAY)
   sportsHouseId     String?            @db.Uuid
   createdAt         DateTime           @default(now())
+  attendance        Attendance[]
   hostelAllocations HostelAllocation[]
   invoices          Invoice[]
   scores            Score[]
@@ -244,6 +251,46 @@ model SportsEvent {
   tenant    Tenant    @relation(fields: [tenantId], references: [id])
 
   @@map("sports_events")
+}
+
+model Attendance {
+  id        String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId  String           @db.Uuid
+  classId   String           @db.Uuid
+  sessionId String           @db.Uuid
+  date      DateTime         @db.Date
+  studentId String           @db.Uuid
+  status    AttendanceStatus @default(PRESENT)
+  markedBy  String?          @db.Uuid
+  notes     String?
+  createdAt DateTime         @default(now())
+  class     Class            @relation(fields: [classId], references: [id])
+  session   AcademicSession  @relation(fields: [sessionId], references: [id])
+  student   Student          @relation(fields: [studentId], references: [id])
+  marker    User?            @relation("AttendanceMarker", fields: [markedBy], references: [id])
+  tenant    Tenant           @relation(fields: [tenantId], references: [id])
+
+  @@unique([tenantId, classId, date, studentId])
+  @@map("attendance")
+}
+
+model Notice {
+  id          String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId    String         @db.Uuid
+  title       String
+  body        String
+  category    NoticeCategory @default(GENERAL)
+  isPinned    Boolean        @default(false)
+  targetRoles Json           @default("[]")
+  publishedAt DateTime       @default(now())
+  expiresAt   DateTime?
+  authorId    String?        @db.Uuid
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  author      User?          @relation("NoticeAuthor", fields: [authorId], references: [id])
+  tenant      Tenant         @relation(fields: [tenantId], references: [id])
+
+  @@map("notices")
 }
 
 model FeeCategory {
@@ -379,4 +426,20 @@ enum PaymentGateway {
   STRIPE
   BANK_TRANSFER
   CASH
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  LATE
+  EXCUSED
+}
+
+enum NoticeCategory {
+  GENERAL
+  ACADEMIC
+  FINANCE
+  HOSTEL
+  SPORTS
+  EMERGENCY
 }

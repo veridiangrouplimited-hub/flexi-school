@@ -119,6 +119,50 @@ financeRouter.get('/invoices/:id', async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+// ── Create invoice ────────────────────────────────────────────────────────────
+
+const createInvoiceSchema = z.object({
+  studentId: z.string().uuid(),
+  sessionId: z.string().uuid(),
+  term:      z.enum(['FIRST', 'SECOND', 'THIRD']),
+  dueDate:   z.string().optional(),
+  notes:     z.string().optional(),
+  items: z.array(z.object({
+    feeCategoryId: z.string().uuid(),
+    description:   z.string().optional(),
+    amount:        z.number().positive(),
+  })).min(1),
+});
+
+financeRouter.post('/invoices', requirePermission('finance:write'), async (req, res, next) => {
+  try {
+    const body  = createInvoiceSchema.parse(req.body);
+    const total = body.items.reduce((s, i) => s + i.amount, 0);
+
+    const invoice = await prisma.invoice.create({
+      data: {
+        tenantId:    req.tenant.id,
+        studentId:   body.studentId,
+        sessionId:   body.sessionId,
+        term:        body.term,
+        totalAmount: total,
+        dueDate:     body.dueDate ? new Date(body.dueDate) : undefined,
+        notes:       body.notes,
+        items: {
+          create: body.items.map(it => ({
+            tenantId:      req.tenant.id,
+            feeCategoryId: it.feeCategoryId,
+            description:   it.description ?? null,
+            amount:        it.amount,
+          })),
+        },
+      },
+      include: { items: true },
+    });
+    res.status(201).json(invoice);
+  } catch (err) { next(err); }
+});
+
 // ── Checkout: initiate payment ────────────────────────────────────────────────
 
 const checkoutSchema = z.object({

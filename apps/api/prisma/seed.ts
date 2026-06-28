@@ -7,6 +7,8 @@ async function main() {
   console.log('Seeding database…');
 
   // Clear in dependency order
+  await prisma.notice.deleteMany();
+  await prisma.attendance.deleteMany();
   await prisma.payment.deleteMany();
   await prisma.invoiceItem.deleteMany();
   await prisma.invoice.deleteMany();
@@ -205,6 +207,82 @@ async function main() {
       await prisma.bed.create({ data: { tenantId: tenant.id, dormitoryId: girlsDorm.id, roomNumber: `G${room}`, bedNumber: `${bed}`, status: 'VACANT' } });
     }
   }
+
+  // ── Attendance (last 10 school days for both students) ───────────────────
+  const [student2Record] = [
+    await prisma.student.findFirst({ where: { tenantId: tenant.id, userId: su2.id } }),
+  ];
+
+  const attendanceDates = Array.from({ length: 10 }, (_, i) => {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    d.setHours(0, 0, 0, 0);
+    return d;
+  }).filter(d => d.getDay() !== 0 && d.getDay() !== 6); // skip weekends
+
+  for (const date of attendanceDates) {
+    const s1Status = Math.random() > 0.1 ? 'PRESENT' : 'ABSENT';
+    const s2Status = Math.random() > 0.2 ? 'PRESENT' : 'LATE';
+    await prisma.attendance.createMany({
+      data: [
+        { tenantId: tenant.id, classId: class2.id, sessionId: session.id, date, studentId: student1.id, status: s1Status as 'PRESENT' | 'ABSENT', markedBy: teacherUser.id },
+        { tenantId: tenant.id, classId: class1.id, sessionId: session.id, date, studentId: student2Record!.id, status: s2Status as 'PRESENT' | 'LATE', markedBy: teacherUser.id },
+      ],
+      skipDuplicates: true,
+    });
+  }
+
+  // ── Notices ────────────────────────────────────────────────────────────────
+  await prisma.notice.createMany({
+    data: [
+      {
+        tenantId:    tenant.id,
+        title:       'Welcome Back — 2024/2025 Academic Session',
+        body:        'We warmly welcome all students, parents, and staff to the new academic session. Classes commence Monday 9th September. Please ensure all fees are settled before the end of the first week.',
+        category:    'GENERAL',
+        isPinned:    true,
+        targetRoles: [],
+        authorId:    adminUser.id,
+      },
+      {
+        tenantId:    tenant.id,
+        title:       'First Term Examination Timetable',
+        body:        'The First Term examinations will commence on 25th November 2024. All students are required to be in school by 7:30 AM on examination days. Parents are advised to ensure prompt settlement of exam fees.',
+        category:    'ACADEMIC',
+        isPinned:    false,
+        targetRoles: ['STUDENT', 'PARENT'],
+        authorId:    adminUser.id,
+        expiresAt:   new Date('2024-12-01'),
+      },
+      {
+        tenantId:    tenant.id,
+        title:       'Fee Payment Deadline — First Term',
+        body:        'This is a reminder that all First Term fees (Tuition, Books, Uniform, Lab, Exam) must be paid by 1st October 2024. Students with outstanding balances after this date may be excluded from examinations.',
+        category:    'FINANCE',
+        isPinned:    false,
+        targetRoles: ['PARENT', 'STUDENT'],
+        authorId:    adminUser.id,
+      },
+      {
+        tenantId:    tenant.id,
+        title:       'Inter-House Sports Day — Save the Date',
+        body:        'Inter-House Sports Day is scheduled for Saturday 14th December 2024 at the school sports ground. All students are encouraged to participate. Contact the Sports Master to register for events.',
+        category:    'SPORTS',
+        isPinned:    false,
+        targetRoles: [],
+        authorId:    adminUser.id,
+      },
+      {
+        tenantId:    tenant.id,
+        title:       'Hostel Check-in for Boarders',
+        body:        'All boarders are to report to their respective dormitory housemasters by 4:00 PM on Sunday 8th September. Please come with your allocation letter and bedding.',
+        category:    'HOSTEL',
+        isPinned:    false,
+        targetRoles: ['STUDENT'],
+        authorId:    adminUser.id,
+      },
+    ],
+  });
 
   // ── Fee categories ────────────────────────────────────────────────────────
   const [catFees, catBooks, catUniform, catLab, catExam] = await Promise.all([
