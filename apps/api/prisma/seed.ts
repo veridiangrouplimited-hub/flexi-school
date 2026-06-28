@@ -375,6 +375,139 @@ async function main() {
     },
   });
 
+  // ── 20 Additional students ────────────────────────────────────────────────
+  const extraDefs: { name: string; admNo: string; cls: 'c1' | 'c2'; boarding: 'DAY' | 'BOARDER'; gender: 'M' | 'F' }[] = [
+    // JS1A (class1) — 10 students
+    { name: 'Adewale Ogundimu',   admNo: 'KCL/2024/003', cls: 'c1', boarding: 'DAY',     gender: 'M' },
+    { name: 'Ngozi Ike',          admNo: 'KCL/2024/004', cls: 'c1', boarding: 'DAY',     gender: 'F' },
+    { name: 'Emeka Nwosu',        admNo: 'KCL/2024/005', cls: 'c1', boarding: 'DAY',     gender: 'M' },
+    { name: 'Amina Hassan',       admNo: 'KCL/2024/006', cls: 'c1', boarding: 'BOARDER', gender: 'F' },
+    { name: 'Tunde Adeyemi',      admNo: 'KCL/2024/007', cls: 'c1', boarding: 'DAY',     gender: 'M' },
+    { name: 'Tolani Oyelaran',    admNo: 'KCL/2024/008', cls: 'c1', boarding: 'DAY',     gender: 'F' },
+    { name: 'Yusuf Musa',         admNo: 'KCL/2024/009', cls: 'c1', boarding: 'BOARDER', gender: 'M' },
+    { name: 'Nkechi Obi',         admNo: 'KCL/2024/010', cls: 'c1', boarding: 'DAY',     gender: 'F' },
+    { name: 'Kingsley Eze',       admNo: 'KCL/2024/011', cls: 'c1', boarding: 'DAY',     gender: 'M' },
+    { name: 'Zainab Yusuf',       admNo: 'KCL/2024/012', cls: 'c1', boarding: 'BOARDER', gender: 'F' },
+    // SS2B (class2) — 10 students
+    { name: 'Babatunde Olawale',  admNo: 'KCL/2024/013', cls: 'c2', boarding: 'BOARDER', gender: 'M' },
+    { name: 'Adaeze Chukwu',      admNo: 'KCL/2024/014', cls: 'c2', boarding: 'DAY',     gender: 'F' },
+    { name: 'Chidera Okafor',     admNo: 'KCL/2024/015', cls: 'c2', boarding: 'BOARDER', gender: 'M' },
+    { name: 'Blessing Adewale',   admNo: 'KCL/2024/016', cls: 'c2', boarding: 'DAY',     gender: 'F' },
+    { name: 'Seun Adesanya',      admNo: 'KCL/2024/017', cls: 'c2', boarding: 'BOARDER', gender: 'M' },
+    { name: 'Funmilayo Oduya',    admNo: 'KCL/2024/018', cls: 'c2', boarding: 'DAY',     gender: 'F' },
+    { name: 'Ibrahim Sani',       admNo: 'KCL/2024/019', cls: 'c2', boarding: 'BOARDER', gender: 'M' },
+    { name: 'Chiamaka Nwankwo',   admNo: 'KCL/2024/020', cls: 'c2', boarding: 'BOARDER', gender: 'F' },
+    { name: 'Oluwaseun Balogun',  admNo: 'KCL/2024/021', cls: 'c2', boarding: 'DAY',     gender: 'M' },
+    { name: 'Hadiza Usman',       admNo: 'KCL/2024/022', cls: 'c2', boarding: 'BOARDER', gender: 'F' },
+  ];
+
+  // Fixed score sets for SS2B students (realistic variation)
+  const ss2bScores = [
+    [{ ca: 30, ex: 55 }, { ca: 28, ex: 50 }, { ca: 25, ex: 48 }, { ca: 32, ex: 57 }, { ca: 29, ex: 54 }],
+    [{ ca: 22, ex: 40 }, { ca: 20, ex: 38 }, { ca: 24, ex: 42 }, { ca: 18, ex: 36 }, { ca: 21, ex: 39 }],
+    [{ ca: 27, ex: 52 }, { ca: 25, ex: 49 }, { ca: 30, ex: 55 }, { ca: 26, ex: 50 }, { ca: 28, ex: 53 }],
+    [{ ca: 35, ex: 60 }, { ca: 33, ex: 58 }, { ca: 30, ex: 55 }, { ca: 34, ex: 62 }, { ca: 32, ex: 57 }],
+    [{ ca: 18, ex: 30 }, { ca: 15, ex: 28 }, { ca: 20, ex: 35 }, { ca: 14, ex: 26 }, { ca: 17, ex: 32 }],
+    [{ ca: 26, ex: 50 }, { ca: 24, ex: 47 }, { ca: 28, ex: 52 }, { ca: 23, ex: 46 }, { ca: 25, ex: 49 }],
+    [{ ca: 31, ex: 58 }, { ca: 29, ex: 54 }, { ca: 33, ex: 60 }, { ca: 28, ex: 52 }, { ca: 30, ex: 56 }],
+    [{ ca: 20, ex: 38 }, { ca: 22, ex: 41 }, { ca: 19, ex: 36 }, { ca: 21, ex: 40 }, { ca: 18, ex: 34 }],
+    [{ ca: 28, ex: 53 }, { ca: 27, ex: 51 }, { ca: 30, ex: 56 }, { ca: 26, ex: 49 }, { ca: 29, ex: 54 }],
+    [{ ca: 24, ex: 45 }, { ca: 22, ex: 43 }, { ca: 26, ex: 48 }, { ca: 20, ex: 40 }, { ca: 23, ex: 44 }],
+  ];
+
+  let ss2bIdx = 0;
+  for (const def of extraDefs) {
+    const slug  = def.name.toLowerCase().replace(/\s+/g, '.');
+    const email = `${slug}@demo.flexischool.app`;
+    const classId = def.cls === 'c1' ? class1.id : class2.id;
+
+    const extraUser = await prisma.user.create({
+      data: {
+        tenantId:     tenant.id,
+        email,
+        passwordHash: await import('bcryptjs').then(b => b.hash('Student1234!', 10)),
+        roleId:       studentRole.id,
+        profile:      { fullName: def.name },
+      },
+    });
+
+    const extraStudent = await prisma.student.create({
+      data: { tenantId: tenant.id, userId: extraUser.id, admissionNo: def.admNo, classId, boardingStatus: def.boarding },
+    });
+
+    // Scores for SS2B students only
+    if (def.cls === 'c2') {
+      const scores = ss2bScores[ss2bIdx++];
+      for (let s = 0; s < subjects.length; s++) {
+        const sc = scores[s];
+        await prisma.score.create({
+          data: {
+            tenantId:    tenant.id,
+            studentId:   extraStudent.id,
+            subjectId:   subjects[s].id,
+            sessionId:   session.id,
+            term:        'FIRST',
+            components:  { CA: sc.ca, Exam: sc.ex },
+            total:       sc.ca + sc.ex,
+            submittedBy: teacherUser.id,
+          },
+        });
+      }
+    }
+
+    // Attendance for all extra students
+    for (const date of attendanceDates) {
+      const statuses: ('PRESENT' | 'ABSENT' | 'LATE')[] = ['PRESENT', 'PRESENT', 'PRESENT', 'PRESENT', 'LATE', 'PRESENT', 'PRESENT', 'ABSENT', 'PRESENT', 'PRESENT'];
+      const st = statuses[Math.floor(Math.random() * statuses.length)];
+      await prisma.attendance.create({
+        data: { tenantId: tenant.id, classId, sessionId: session.id, date, studentId: extraStudent.id, status: st, markedBy: teacherUser.id },
+      }).catch(() => {}); // skip if date already exists
+    }
+
+    // Invoice for some students (every other one, starting from the 3rd)
+    const invIdx = extraDefs.indexOf(def);
+    if (invIdx % 3 !== 0) {
+      const isPaid   = invIdx % 2 === 0;
+      const isOverdue = invIdx % 5 === 4;
+      const status   = isPaid ? 'PAID' : (isOverdue ? 'OVERDUE' : 'UNPAID');
+      const total    = 640.00;
+
+      const inv = await prisma.invoice.create({
+        data: {
+          tenantId:    tenant.id,
+          studentId:   extraStudent.id,
+          sessionId:   session.id,
+          term:        'FIRST',
+          status:      status as 'PAID' | 'OVERDUE' | 'UNPAID',
+          totalAmount: total,
+          dueDate:     new Date('2024-10-01'),
+          items: {
+            create: [
+              { tenantId: tenant.id, feeCategoryId: catFees.id,   description: 'First Term Tuition', amount: 500.00 },
+              { tenantId: tenant.id, feeCategoryId: catBooks.id,  description: null, amount: 80.00 },
+              { tenantId: tenant.id, feeCategoryId: catExam.id,   description: null, amount: 30.00 },
+              { tenantId: tenant.id, feeCategoryId: catLab.id,    description: null, amount: 30.00 },
+            ],
+          },
+        },
+      });
+
+      if (isPaid) {
+        await prisma.payment.create({
+          data: {
+            tenantId:      tenant.id,
+            invoiceId:     inv.id,
+            amount:        total,
+            currency:      'USD',
+            gateway:       invIdx % 4 === 0 ? 'CASH' : 'BANK_TRANSFER',
+            status:        'COMPLETED',
+            paidAt:        new Date('2024-09-20'),
+          },
+        });
+      }
+    }
+  }
+
   // ── Print credentials ─────────────────────────────────────────────────────
   console.log('\nSeed complete ✓');
   console.log('─────────────────────────────────────────');

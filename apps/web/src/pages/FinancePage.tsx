@@ -1,8 +1,12 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Banknote, CheckCircle, Clock, AlertCircle, CreditCard, Banknote as Cash, Plus, X, Trash2 } from 'lucide-react';
+import { Banknote, CheckCircle, Clock, AlertCircle, CreditCard, Banknote as Cash, Plus, X, Trash2, Download, Eye, Search } from 'lucide-react';
+import { PDFDownloadLink, BlobProvider } from '@react-pdf/renderer';
+import toast from 'react-hot-toast';
 import { api } from '../lib/api';
 import { useAuthStore } from '../stores/authStore';
+import { useTenant } from '../context/TenantContext';
+import { InvoicePDF } from '../pdf/InvoicePDF';
 
 interface FeeCategory { id: string; name: string; defaultAmount: number | null; description: string | null; }
 interface StudentItem { id: string; admissionNo: string; name: string; }
@@ -20,11 +24,13 @@ interface Session  { id: string; name: string; isCurrent: boolean; }
 
 export function FinancePage() {
   const can = useAuthStore(s => s.can);
+  const { name: schoolName } = useTenant();
   const qc  = useQueryClient();
   const [sessionId, setSessionId]   = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [expanded, setExpanded]     = useState<string | null>(null);
   const [showCreate, setShowCreate] = useState(false);
+  const [search, setSearch]         = useState('');
 
   const { data: sessions   = [] } = useQuery<Session[]>({ queryKey: ['sessions'],    queryFn: () => api.get('/api/academic/sessions') });
   const { data: categories = [] } = useQuery<FeeCategory[]>({ queryKey: ['fee-categories'], queryFn: () => api.get('/api/finance/categories') });
@@ -45,15 +51,23 @@ export function FinancePage() {
   const checkout = useMutation({
     mutationFn: ({ invoiceId, gateway }: { invoiceId: string; gateway: string }) =>
       api.post<{ approvalUrl?: string; success?: boolean; gateway?: string }>(`/api/finance/invoices/${invoiceId}/checkout`, { gateway }),
-    onSuccess: (data, { invoiceId, gateway }) => {
+    onSuccess: (data) => {
       if (data.approvalUrl) {
         window.location.href = data.approvalUrl;
       } else {
-        // Cash/bank — immediately refetch
+        toast.success('Payment recorded successfully');
         qc.invalidateQueries({ queryKey: ['invoices'] });
         qc.invalidateQueries({ queryKey: ['finance-summary'] });
+        qc.invalidateQueries({ queryKey: ['dashboard-stats'] });
       }
     },
+    onError: () => toast.error('Payment failed. Please try again.'),
+  });
+
+  const filteredInvoices = invoices.filter(inv => {
+    if (!search) return true;
+    const q = search.toLowerCase();
+    return inv.studentName.toLowerCase().includes(q) || inv.admissionNo.toLowerCase().includes(q);
   });
 
   const cur = summary?.currency ?? 'USD';
@@ -103,8 +117,17 @@ export function FinancePage() {
         </div>
       )}
 
-      {/* Filters */}
+      {/* Filters + Search */}
       <div className="flex flex-wrap gap-3">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
+          <input
+            placeholder="Search student…"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            className="rounded-lg border border-slate-300 py-2 pl-8 pr-3 text-sm focus:border-brand-700 focus:outline-none w-48"
+          />
+        </div>
         <select
           value={sessionId}
           onChange={e => setSessionId(e.target.value)}
@@ -127,16 +150,23 @@ export function FinancePage() {
       </div>
 
       {/* Invoice list */}
-      {isLoading && <p className="text-sm text-slate-500">Loading invoices…</p>}
+      {isLoading && (
+        <div className="space-y-2 animate-pulse">
+          {[...Array(3)].map((_, i) => <div key={i} className="h-16 rounded-xl bg-slate-100" />)}
+        </div>
+      )}
 
-      {!isLoading && invoices.length === 0 && (
-        <div className="rounded-xl border border-dashed border-slate-300 p-10 text-center text-sm text-slate-400">
-          No invoices found.
+      {!isLoading && filteredInvoices.length === 0 && (
+        <div className="rounded-xl border border-dashed border-slate-300 p-10 text-center">
+          <Banknote className="mx-auto mb-3 h-8 w-8 text-slate-300" />
+          <p className="text-sm font-medium text-slate-500">
+            {search ? `No invoices matching "${search}"` : 'No invoices found'}
+          </p>
         </div>
       )}
 
       <div className="space-y-3">
-        {invoices.map(inv => (
+        {filteredInvoices.map(inv => (
           <div key={inv.id} className="rounded-xl border border-slate-200 bg-white shadow-sm">
             {/* Row */}
             <div
@@ -160,6 +190,34 @@ export function FinancePage() {
             {/* Expanded detail */}
             {expanded === inv.id && (
               <div className="border-t border-slate-100 px-5 pb-5 pt-4">
+                {/* PDF actions */}
+                <div className="mb-4 flex flex-wrap gap-2">
+                  <PDFDownloadLink
+                    document={<InvoicePDF invoice={inv} schoolName={schoolName} />}
+                    fileName={`invoice-${inv.admissionNo}-${inv.term}-${inv.session.replace('/', '-')}.pdf`}
+                  >
+                    {({ loading }) => (
+                      <button className="flex items-center gap-1.5 rounded-lg bg-brand-700 px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-800 disabled:opacity-60">
+                        <Download className="h-3.5 w-3.5" />
+                        {loading ? 'Preparing…' : 'Download PDF'}
+                      </button>
+                    )}
+                  </PDFDownloadLink>
+                  <BlobProvider document={<InvoicePDF invoice={inv} schoolName={schoolName} />}>
+                    {({ url, loading }) => (
+                      <a
+                        href={url ?? '#'}
+                        target="_blank"
+                        rel="noreferrer"
+                        className={`flex items-center gap-1.5 rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 ${loading ? 'pointer-events-none opacity-60' : ''}`}
+                      >
+                        <Eye className="h-3.5 w-3.5" />
+                        {loading ? 'Preparing…' : 'View PDF'}
+                      </a>
+                    )}
+                  </BlobProvider>
+                </div>
+
                 {/* Items table */}
                 <table className="w-full text-sm">
                   <thead>

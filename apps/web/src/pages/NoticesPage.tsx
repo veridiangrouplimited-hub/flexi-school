@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Bell, Pin, Plus, Trash2, X } from 'lucide-react';
+import toast from 'react-hot-toast';
 import { api } from '../lib/api';
 import { useAuthStore } from '../stores/authStore';
 
@@ -41,15 +42,18 @@ export function NoticesPage() {
       expiresAt: form.expiresAt ? new Date(form.expiresAt).toISOString() : undefined,
     }),
     onSuccess: () => {
+      toast.success('Notice published');
       qc.invalidateQueries({ queryKey: ['notices'] });
       setShowForm(false);
       setForm({ title: '', body: '', category: 'GENERAL', isPinned: false, expiresAt: '' });
     },
+    onError: () => toast.error('Failed to publish notice'),
   });
 
   const remove = useMutation({
     mutationFn: (id: string) => api.delete(`/api/notices/${id}`),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['notices'] }),
+    onSuccess: () => { toast.success('Notice deleted'); qc.invalidateQueries({ queryKey: ['notices'] }); },
+    onError:   () => toast.error('Failed to delete notice'),
   });
 
   const canAdmin = can('settings:write');
