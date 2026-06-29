@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ClipboardList, Check, X, Clock, AlertTriangle, Save, Download, Eye, Search } from 'lucide-react';
 import { PDFDownloadLink, BlobProvider } from '@react-pdf/renderer';
@@ -66,8 +66,14 @@ export function AttendancePage() {
     queryKey: ['attendance-roll', classId, date],
     queryFn:  () => api.get(`/api/attendance?classId=${classId}&date=${date}`),
     enabled:  !!classId,
-    onSuccess: () => { setOverrides({}); setSelectAll(null); setSearch(''); },
-  } as Parameters<typeof useQuery>[0]);
+  });
+
+  // Reset overrides/search when the roll changes
+  useEffect(() => {
+    setOverrides({});
+    setSelectAll(null);
+    setSearch('');
+  }, [classId, date]);
 
   function getStatus(row: StudentRow): Status {
     return overrides[row.studentId] ?? row.status ?? 'PRESENT';

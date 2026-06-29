@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { BookOpen, FileText, Download, Eye } from 'lucide-react';
 import { PDFDownloadLink, BlobProvider } from '@react-pdf/renderer';
@@ -29,11 +29,14 @@ export function AcademicsPage() {
   const { data: sessions = [] } = useQuery<Session[]>({
     queryKey: ['sessions'],
     queryFn:  () => api.get('/api/academic/sessions'),
-    onSuccess: (data) => {
-      const cur = data.find(s => s.isCurrent);
-      if (cur && !sessionId) setSessionId(cur.id);
-    },
-  } as Parameters<typeof useQuery>[0]);
+  });
+
+  useEffect(() => {
+    if (sessions.length && !sessionId) {
+      const cur = sessions.find(s => s.isCurrent);
+      if (cur) setSessionId(cur.id);
+    }
+  }, [sessions, sessionId]);
 
   const { data: classes = [] } = useQuery<Class[]>({
     queryKey: ['classes', sessionId],

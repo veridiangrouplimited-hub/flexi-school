@@ -1,4 +1,4 @@
-import { Document, Page, View, Text, StyleSheet } from '@react-pdf/renderer';
+import { Document, Page, View, Text, StyleSheet, type Styles } from '@react-pdf/renderer';
 
 const C = { brand: '#15803d', dark: '#1e293b', muted: '#64748b', light: '#f8fafc', border: '#e2e8f0', white: '#ffffff' };
 
@@ -64,7 +64,7 @@ function fmtDate(d: string | null) {
   return new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
-const STATUS_STYLE: Record<string, object> = {
+const STATUS_STYLE: Styles = {
   PAID: s.statusPaid, UNPAID: s.statusUnpaid, OVERDUE: s.statusOverdue,
   PARTIAL: s.statusUnpaid, CANCELLED: s.statusUnpaid,
 };

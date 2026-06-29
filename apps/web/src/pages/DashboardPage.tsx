@@ -111,14 +111,14 @@ function AdminDashboard({ stats, schoolName, tier, flags }: {
       </div>
 
       {/* Recent notices */}
-      {stats?.recentNotices?.length > 0 && (
+      {(stats?.recentNotices?.length ?? 0) > 0 && (
         <div>
           <div className="mb-3 flex items-center justify-between">
             <h3 className="text-sm font-semibold text-slate-700">Recent Notices</h3>
             <Link to="/notices" className="text-xs text-brand-700 hover:underline">View all</Link>
           </div>
           <div className="space-y-2">
-            {stats.recentNotices.map(n => <NoticeRow key={n.id} notice={n} />)}
+            {stats?.recentNotices?.map(n => <NoticeRow key={n.id} notice={n} />)}
           </div>
         </div>
       )}
@@ -173,14 +173,14 @@ function TeacherDashboard({ stats, schoolName }: { stats: TeacherStats | undefin
       </div>
 
       {/* Recent notices */}
-      {stats?.recentNotices?.length > 0 && (
+      {(stats?.recentNotices?.length ?? 0) > 0 && (
         <div>
           <div className="mb-3 flex items-center justify-between">
             <h3 className="text-sm font-semibold text-slate-700">Latest Notices</h3>
             <Link to="/notices" className="text-xs text-brand-700 hover:underline">View all</Link>
           </div>
           <div className="space-y-2">
-            {stats.recentNotices.map(n => <NoticeRow key={n.id} notice={n} />)}
+            {stats?.recentNotices?.map(n => <NoticeRow key={n.id} notice={n} />)}
           </div>
         </div>
       )}
@@ -220,7 +220,7 @@ function StudentDashboard({ stats, schoolName }: { stats: StudentStats | undefin
       </div>
 
       {/* Recent scores */}
-      {stats?.recentScores?.length > 0 && (
+      {(stats?.recentScores?.length ?? 0) > 0 && (
         <div>
           <div className="mb-3 flex items-center justify-between">
             <h3 className="text-sm font-semibold text-slate-700">Recent Scores</h3>
@@ -237,7 +237,7 @@ function StudentDashboard({ stats, schoolName }: { stats: StudentStats | undefin
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
-                {stats.recentScores.map((s, i) => (
+                {stats?.recentScores?.map((s, i) => (
                   <tr key={i}>
                     <td className="px-5 py-3 font-medium text-slate-700">{s.subject}</td>
                     <td className="px-5 py-3 text-slate-500">{s.term}</td>
@@ -264,14 +264,14 @@ function StudentDashboard({ stats, schoolName }: { stats: StudentStats | undefin
       </div>
 
       {/* Recent notices */}
-      {stats?.recentNotices?.length > 0 && (
+      {(stats?.recentNotices?.length ?? 0) > 0 && (
         <div>
           <div className="mb-3 flex items-center justify-between">
             <h3 className="text-sm font-semibold text-slate-700">Latest Notices</h3>
             <Link to="/notices" className="text-xs text-brand-700 hover:underline">View all</Link>
           </div>
           <div className="space-y-2">
-            {stats.recentNotices.map(n => <NoticeRow key={n.id} notice={n} />)}
+            {stats?.recentNotices?.map(n => <NoticeRow key={n.id} notice={n} />)}
           </div>
         </div>
       )}
@@ -293,11 +293,11 @@ function ParentDashboard({ stats, schoolName }: { stats: DashStats | undefined; 
         <ActionCard to="/finance"   icon={Banknote}  label="Fees"     color="green" />
         <ActionCard to="/notices"   icon={Bell}      label="Notices"  color="slate" />
       </div>
-      {(stats as { recentNotices?: RecentNotice[] })?.recentNotices?.length > 0 && (
+      {((stats as { recentNotices?: RecentNotice[] })?.recentNotices?.length ?? 0) > 0 && (
         <div>
           <h3 className="mb-3 text-sm font-semibold text-slate-700">Latest Notices</h3>
           <div className="space-y-2">
-            {((stats as { recentNotices: RecentNotice[] }).recentNotices).map(n => <NoticeRow key={n.id} notice={n} />)}
+            {(stats as { recentNotices?: RecentNotice[] })?.recentNotices?.map(n => <NoticeRow key={n.id} notice={n} />)}
           </div>
         </div>
       )}
