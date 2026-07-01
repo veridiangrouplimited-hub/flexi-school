@@ -81,6 +81,43 @@ academicRouter.get('/report-card', async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+// Batch report cards — whole class, or whole school when classId is omitted
+const batchReportCardQuery = z.object({
+  classId:   z.string().uuid().optional(),
+  sessionId: z.string().uuid(),
+  term:      z.enum(['FIRST', 'SECOND', 'THIRD']),
+});
+
+academicRouter.get('/report-cards', async (req, res, next) => {
+  try {
+    const { classId, sessionId, term } = batchReportCardQuery.parse(req.query);
+
+    const students = await prisma.student.findMany({
+      where: {
+        tenantId: req.tenant.id,
+        ...(classId ? { classId } : { classId: { not: null } }),
+      },
+      orderBy: { admissionNo: 'asc' },
+      select:  { id: true },
+    });
+
+    const cards = [];
+    for (const s of students) {
+      const card = await generateReportCard({
+        studentId: s.id, sessionId, term, tenantId: req.tenant.id,
+      });
+      // Only include students who actually have scores for this term
+      if (card.results.length > 0) cards.push(card);
+    }
+
+    res.json({
+      cards,
+      total:   students.length,
+      skipped: students.length - cards.length,
+    });
+  } catch (err) { next(err); }
+});
+
 // Scores — list
 academicRouter.get('/scores', async (req, res, next) => {
   try {

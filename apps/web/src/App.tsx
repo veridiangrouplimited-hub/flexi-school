@@ -11,6 +11,7 @@ import { DashboardPage } from './pages/DashboardPage';
 import { AcademicsPage } from './pages/AcademicsPage';
 import { HostelPage } from './pages/HostelPage';
 import { AttendancePage } from './pages/AttendancePage';
+import { LearningPage } from './pages/LearningPage';
 import { SportsPage } from './pages/SportsPage';
 import { FinancePage } from './pages/FinancePage';
 import { AlumniPage } from './pages/AlumniPage';
@@ -98,6 +99,7 @@ export function App() {
             <Route path="/academics"  element={<AcademicsPage />} />
             <Route path="/hostel"     element={<HostelPage />} />
             <Route path="/attendance" element={<AttendancePage />} />
+            <Route path="/learning"   element={<LearningPage />} />
             <Route path="/sports"     element={<SportsPage />} />
             <Route path="/finance"                   element={<FinancePage />} />
             <Route path="/finance/payment/success"  element={<PaymentSuccessPage />} />

@@ -2,6 +2,7 @@ import { NavLink } from 'react-router-dom';
 import {
   LayoutDashboard,
   BookOpen,
+  NotebookPen,
   Users,
   Building2,
   Trophy,
@@ -47,6 +48,7 @@ export function Sidebar() {
       title: 'School',
       items: [
         { to: '/academics',  icon: BookOpen,      label: 'Academics',  show: true },
+        { to: '/learning',   icon: NotebookPen,   label: 'Learning',   show: true },
         { to: '/attendance', icon: Users,         label: 'Attendance', show: true },
         { to: '/hostel',     icon: Building2,     label: 'Hostel',     show: hasHostel },
         { to: '/sports',     icon: Trophy,        label: 'Sports',     show: hasSports },

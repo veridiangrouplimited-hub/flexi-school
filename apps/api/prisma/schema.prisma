@@ -20,10 +20,12 @@ model Tenant {
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
   academicSessions  AcademicSession[]
+  assignments       Assignment[]
   attendance        Attendance[]
   beds              Bed[]
   caWeights         CaWeight[]
   classes           Class[]
+  classNotes        ClassNote[]
   dormitories       Dormitory[]
   feeCategories     FeeCategory[]
   gradingScales     GradingScale[]
@@ -38,6 +40,7 @@ model Tenant {
   sportsHouses      SportsHouse[]
   students          Student[]
   subjects          Subject[]
+  submissions       Submission[]
   users             User[]
 
   @@map("tenants")
@@ -84,6 +87,8 @@ model AcademicSession {
   tenant            Tenant             @relation(fields: [tenantId], references: [id])
   attendance        Attendance[]
   classes           Class[]
+  classNotes        ClassNote[]
+  assignments       Assignment[]
   hostelAllocations HostelAllocation[]
   invoices          Invoice[]
   scores            Score[]
@@ -111,6 +116,8 @@ model Subject {
   gradingScaleId String?       @db.Uuid
   caWeights      CaWeight[]
   scores         Score[]
+  classNotes     ClassNote[]
+  assignments    Assignment[]
   gradingScale   GradingScale? @relation(fields: [gradingScaleId], references: [id])
   tenant         Tenant        @relation(fields: [tenantId], references: [id])
 
@@ -124,10 +131,12 @@ model Class {
   level     String?
   arm       String?
   sessionId String          @db.Uuid
-  session    AcademicSession @relation(fields: [sessionId], references: [id])
-  tenant     Tenant          @relation(fields: [tenantId], references: [id])
-  students   Student[]
-  attendance Attendance[]
+  session     AcademicSession @relation(fields: [sessionId], references: [id])
+  tenant      Tenant          @relation(fields: [tenantId], references: [id])
+  students    Student[]
+  attendance  Attendance[]
+  classNotes  ClassNote[]
+  assignments Assignment[]
 
   @@map("classes")
 }
@@ -145,6 +154,7 @@ model Student {
   hostelAllocations HostelAllocation[]
   invoices          Invoice[]
   scores            Score[]
+  submissions       Submission[]
   class             Class?             @relation(fields: [classId], references: [id])
   sportsHouse       SportsHouse?       @relation(fields: [sportsHouseId], references: [id])
   tenant            Tenant             @relation(fields: [tenantId], references: [id])
@@ -359,6 +369,69 @@ model Payment {
   @@map("payments")
 }
 
+model ClassNote {
+  id        String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId  String          @db.Uuid
+  classId   String          @db.Uuid
+  subjectId String?         @db.Uuid
+  sessionId String          @db.Uuid
+  term      Term
+  title     String
+  body      String
+  authorId  String          @db.Uuid
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+  tenant    Tenant          @relation(fields: [tenantId], references: [id])
+  class     Class           @relation(fields: [classId], references: [id])
+  subject   Subject?        @relation(fields: [subjectId], references: [id])
+  session   AcademicSession @relation(fields: [sessionId], references: [id])
+
+  @@map("class_notes")
+}
+
+model Assignment {
+  id           String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId     String          @db.Uuid
+  classId      String          @db.Uuid
+  subjectId    String?         @db.Uuid
+  sessionId    String          @db.Uuid
+  term         Term
+  type         AssignmentType  @default(HOMEWORK)
+  title        String
+  instructions String
+  dueDate      DateTime?
+  maxScore     Int             @default(100)
+  authorId     String          @db.Uuid
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+  tenant       Tenant          @relation(fields: [tenantId], references: [id])
+  class        Class           @relation(fields: [classId], references: [id])
+  subject      Subject?        @relation(fields: [subjectId], references: [id])
+  session      AcademicSession @relation(fields: [sessionId], references: [id])
+  submissions  Submission[]
+
+  @@map("assignments")
+}
+
+model Submission {
+  id           String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId     String     @db.Uuid
+  assignmentId String     @db.Uuid
+  studentId    String     @db.Uuid
+  content      String
+  submittedAt  DateTime   @default(now())
+  score        Int?
+  feedback     String?
+  gradedBy     String?    @db.Uuid
+  gradedAt     DateTime?
+  tenant       Tenant     @relation(fields: [tenantId], references: [id])
+  assignment   Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  student      Student    @relation(fields: [studentId], references: [id])
+
+  @@unique([assignmentId, studentId])
+  @@map("submissions")
+}
+
 enum Level {
   PRIMARY
   SECONDARY
@@ -426,6 +499,14 @@ enum PaymentGateway {
   STRIPE
   BANK_TRANSFER
   CASH
+}
+
+enum AssignmentType {
+  HOMEWORK
+  CLASSWORK
+  ASSIGNMENT
+  PROJECT
+  TEST
 }
 
 enum AttendanceStatus {

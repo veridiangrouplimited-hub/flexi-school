@@ -7,6 +7,9 @@ async function main() {
   console.log('Seeding database…');
 
   // Clear in dependency order
+  await prisma.submission.deleteMany();
+  await prisma.assignment.deleteMany();
+  await prisma.classNote.deleteMany();
   await prisma.notice.deleteMany();
   await prisma.attendance.deleteMany();
   await prisma.payment.deleteMany();
@@ -416,6 +419,7 @@ async function main() {
   ];
 
   let ss2bIdx = 0;
+  const ss2bStudentIds: string[] = [student1.id];
   for (const def of extraDefs) {
     const slug  = def.name.toLowerCase().replace(/\s+/g, '.');
     const email = `${slug}@demo.flexischool.app`;
@@ -437,6 +441,7 @@ async function main() {
 
     // Scores for SS2B students only
     if (def.cls === 'c2') {
+      ss2bStudentIds.push(extraStudent.id);
       const scores = ss2bScores[ss2bIdx++];
       for (let s = 0; s < subjects.length; s++) {
         const sc = scores[s];
@@ -507,6 +512,108 @@ async function main() {
       }
     }
   }
+
+  // ── LMS: class notes, assignments & submissions ───────────────────────────
+  const daysFromNow = (d: number) => new Date(Date.now() + d * 24 * 60 * 60 * 1000);
+
+  await prisma.classNote.createMany({
+    data: [
+      {
+        tenantId: tenant.id, classId: class2.id, subjectId: subjects[0].id,
+        sessionId: session.id, term: 'FIRST', authorId: teacherUser.id,
+        title: 'Quadratic Equations — Revision Notes',
+        body:  'Key points from this week:\n\n1. Standard form: ax² + bx + c = 0\n2. Solving by factorisation — always check whether the expression factorises before using the formula.\n3. The quadratic formula: x = (−b ± √(b² − 4ac)) / 2a\n4. The discriminant (b² − 4ac) tells you how many real roots exist.\n\nWork through Exercise 5B, questions 1–10, before Friday\'s class.',
+      },
+      {
+        tenantId: tenant.id, classId: class2.id, subjectId: subjects[1].id,
+        sessionId: session.id, term: 'FIRST', authorId: teacherUser.id,
+        title: 'Essay Writing — Structure and Style',
+        body:  'A strong essay has three parts:\n\n• Introduction — state your thesis clearly in the final sentence.\n• Body — one idea per paragraph, each opening with a topic sentence.\n• Conclusion — restate the thesis in fresh words; never introduce new arguments.\n\nRead the sample essay handed out in class and identify the topic sentences in each paragraph.',
+      },
+      {
+        tenantId: tenant.id, classId: class2.id, subjectId: subjects[2].id,
+        sessionId: session.id, term: 'FIRST', authorId: teacherUser.id,
+        title: 'Newton\'s Laws of Motion — Summary',
+        body:  '1st Law (Inertia): a body remains at rest or in uniform motion unless acted on by an external force.\n2nd Law: F = ma — the rate of change of momentum is proportional to the applied force.\n3rd Law: for every action there is an equal and opposite reaction.\n\nMemorise the definitions and be ready for a short quiz next week.',
+      },
+    ],
+  });
+
+  const [hwMath, projPhysics, essayEnglish] = await Promise.all([
+    prisma.assignment.create({
+      data: {
+        tenantId: tenant.id, classId: class2.id, subjectId: subjects[0].id,
+        sessionId: session.id, term: 'FIRST', authorId: teacherUser.id,
+        type: 'HOMEWORK', title: 'Quadratic Equations Problem Set',
+        instructions: 'Solve questions 1–10 from Exercise 5B. Show ALL working — answers without working earn no marks. Type your solutions or describe your steps clearly.',
+        dueDate: daysFromNow(7), maxScore: 20,
+      },
+    }),
+    prisma.assignment.create({
+      data: {
+        tenantId: tenant.id, classId: class2.id, subjectId: subjects[2].id,
+        sessionId: session.id, term: 'FIRST', authorId: teacherUser.id,
+        type: 'PROJECT', title: 'Build a Simple Machine Model',
+        instructions: 'In groups of two, design and describe a simple machine (lever, pulley, or inclined plane) found in everyday life. Explain the physics behind it, including the mechanical advantage. Submit your written report here; bring the physical model to class.',
+        dueDate: daysFromNow(21), maxScore: 50,
+      },
+    }),
+    prisma.assignment.create({
+      data: {
+        tenantId: tenant.id, classId: class2.id, subjectId: subjects[1].id,
+        sessionId: session.id, term: 'FIRST', authorId: teacherUser.id,
+        type: 'ASSIGNMENT', title: 'Argumentative Essay: "Boarding school is better than day school"',
+        instructions: 'Write a 500-word argumentative essay for or against the motion. Follow the structure from this week\'s class notes: clear thesis, one idea per paragraph, strong conclusion.',
+        dueDate: daysFromNow(-2), maxScore: 30,
+      },
+    }),
+  ]);
+
+  // Submissions: essay (past due) — five submitted, three graded
+  const essaySubmitters = ss2bStudentIds.slice(0, 5);
+  const essayTexts = [
+    'Boarding school builds independence. Students learn to manage their own time, belongings and studies without daily parental supervision...',
+    'I disagree with the motion. Day students enjoy family support every evening, which improves emotional wellbeing and academic focus...',
+    'Boarding school is better because it removes the daily commute, giving students up to two extra hours for study and rest...',
+    'The motion ignores cost. Boarding fees are significantly higher, and the money saved by day schooling can fund books and tutoring...',
+    'Living on campus creates lifelong friendships and networks. The shared experience of boarding builds character and resilience...',
+  ];
+  for (let i = 0; i < essaySubmitters.length; i++) {
+    const graded = i < 3;
+    await prisma.submission.create({
+      data: {
+        tenantId:     tenant.id,
+        assignmentId: essayEnglish.id,
+        studentId:    essaySubmitters[i],
+        content:      essayTexts[i],
+        submittedAt:  daysFromNow(-3),
+        ...(graded ? {
+          score:    [26, 22, 24][i],
+          feedback: [
+            'Excellent structure and a persuasive thesis. Watch your comma usage in the second paragraph.',
+            'Good arguments but the conclusion introduces a new point — revise per the class notes.',
+            'Strong opening. Develop the third paragraph further with a concrete example.',
+          ][i],
+          gradedBy: teacherUser.id,
+          gradedAt: daysFromNow(-1),
+        } : {}),
+      },
+    });
+  }
+
+  // Math homework — two early submissions, ungraded
+  for (let i = 0; i < 2; i++) {
+    await prisma.submission.create({
+      data: {
+        tenantId:     tenant.id,
+        assignmentId: hwMath.id,
+        studentId:    ss2bStudentIds[i],
+        content:      `Q1: x² − 5x + 6 = 0 → (x−2)(x−3) = 0 → x = 2 or 3.\nQ2: Using the formula with a=1, b=−4, c=1: x = (4 ± √12)/2...\n(Working shown for all ten questions.)`,
+        submittedAt:  daysFromNow(-1),
+      },
+    });
+  }
+  void projPhysics;
 
   // ── Print credentials ─────────────────────────────────────────────────────
   console.log('\nSeed complete ✓');

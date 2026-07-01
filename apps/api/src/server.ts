@@ -11,6 +11,7 @@ import { financeRouter } from './modules/finance/finance.router';
 import { attendanceRouter } from './modules/attendance/attendance.router';
 import { noticesRouter } from './modules/notices/notices.router';
 import { dashboardRouter } from './modules/dashboard/dashboard.router';
+import { lmsRouter } from './modules/lms/lms.router';
 
 const app = express();
 
@@ -30,6 +31,7 @@ app.use('/api/finance',   requireFlag('finance'), financeRouter);
 app.use('/api/attendance', attendanceRouter);
 app.use('/api/notices',    noticesRouter);
 app.use('/api/dashboard',  dashboardRouter);
+app.use('/api/lms',        lmsRouter);
 
 app.use((_req, res) => {
   res.status(404).json({ code: 'NOT_FOUND', message: 'Route not found' });

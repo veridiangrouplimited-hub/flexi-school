@@ -117,12 +117,32 @@ function gradeStyle(grade: string) {
 }
 
 export function ReportCardPDF({ card, schoolName, motto }: { card: ReportCard; schoolName: string; motto?: string }) {
+  return (
+    <Document title={`Report Card — ${card.student.name}`} author={schoolName}>
+      <ReportCardPage card={card} schoolName={schoolName} motto={motto} />
+    </Document>
+  );
+}
+
+/** Batch document — one report card page per student (whole class or school). */
+export function ClassReportCardsPDF({ cards, schoolName, motto, batchLabel }: {
+  cards: ReportCard[]; schoolName: string; motto?: string; batchLabel?: string;
+}) {
+  return (
+    <Document title={`Report Cards — ${batchLabel ?? `${cards.length} students`}`} author={schoolName}>
+      {cards.map((card, i) => (
+        <ReportCardPage key={`${card.student.admissionNo}-${i}`} card={card} schoolName={schoolName} motto={motto} />
+      ))}
+    </Document>
+  );
+}
+
+function ReportCardPage({ card, schoolName, motto }: { card: ReportCard; schoolName: string; motto?: string }) {
   const caKey   = Object.keys(card.results[0]?.components ?? {}).find(k => k.toLowerCase().includes('ca')) ?? 'CA';
   const examKey = Object.keys(card.results[0]?.components ?? {}).find(k => k.toLowerCase().includes('exam')) ?? 'Exam';
   const avgPct  = Math.min(100, Math.max(0, card.summary.average));
 
   return (
-    <Document title={`Report Card — ${card.student.name}`} author={schoolName}>
       <Page size="A4" style={s.page}>
         {/* Brand bands */}
         <View style={s.band} fixed />
@@ -233,6 +253,5 @@ export function ReportCardPDF({ card, schoolName, motto }: { card: ReportCard; s
           } />
         </View>
       </Page>
-    </Document>
   );
 }

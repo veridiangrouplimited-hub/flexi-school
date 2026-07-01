@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { BookOpen, FileText, Download, Eye } from 'lucide-react';
+import { BookOpen, FileText, Download, Eye, Layers } from 'lucide-react';
 import { PDFDownloadLink, BlobProvider } from '@react-pdf/renderer';
 import { api } from '../lib/api';
 import { useTenant } from '../context/TenantContext';
-import { ReportCardPDF } from '../pdf/ReportCardPDF';
+import { ReportCardPDF, ClassReportCardsPDF } from '../pdf/ReportCardPDF';
 
 interface ReportCard {
   student: { name: string; admissionNo: string; class: string | null; session: string | null; term: string };
@@ -15,6 +15,7 @@ interface ReportCard {
 interface Session { id: string; name: string; isCurrent: boolean; }
 interface Class   { id: string; name: string; }
 interface Student { id: string; admissionNo: string; name: string; }
+interface BatchResult { cards: ReportCard[]; total: number; skipped: number; }
 
 export function AcademicsPage() {
   const { name: schoolName, branding } = useTenant();
@@ -25,6 +26,11 @@ export function AcademicsPage() {
   const [studentId, setStudentId] = useState('');
   const [term,      setTerm]      = useState<'FIRST' | 'SECOND' | 'THIRD'>('FIRST');
   const [submitted, setSubmitted] = useState(false);
+
+  // Batch mode
+  const [batchClassId,   setBatchClassId]   = useState('');   // '' = entire school
+  const [batchTerm,      setBatchTerm]      = useState<'FIRST' | 'SECOND' | 'THIRD'>('FIRST');
+  const [batchSubmitted, setBatchSubmitted] = useState(false);
 
   const { data: sessions = [] } = useQuery<Session[]>({
     queryKey: ['sessions'],
@@ -55,6 +61,19 @@ export function AcademicsPage() {
     queryFn:  () => api.get(`/api/academic/report-card?studentId=${studentId}&sessionId=${sessionId}&term=${term}`),
     enabled:  submitted && !!studentId && !!sessionId,
   });
+
+  const { data: batch, isLoading: batchLoading } = useQuery<BatchResult>({
+    queryKey: ['report-cards-batch', batchClassId, sessionId, batchTerm],
+    queryFn:  () => api.get(
+      `/api/academic/report-cards?sessionId=${sessionId}&term=${batchTerm}${batchClassId ? `&classId=${batchClassId}` : ''}`
+    ),
+    enabled:  batchSubmitted && !!sessionId,
+    staleTime: 5 * 60_000,
+  });
+
+  const batchLabel = batchClassId
+    ? (classes.find(c => c.id === batchClassId)?.name ?? 'Class')
+    : 'Entire School';
 
   const studentName = students.find(s => s.id === studentId)?.name ?? '';
 
@@ -132,6 +151,101 @@ export function AcademicsPage() {
         >
           Generate
         </button>
+      </div>
+
+      {/* Batch report cards */}
+      <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+        <h3 className="mb-1 flex items-center gap-2 text-sm font-semibold text-slate-700">
+          <Layers className="h-4 w-4" />
+          Batch Report Cards
+        </h3>
+        <p className="mb-4 text-xs text-slate-500">
+          Generate one PDF containing report cards for a whole class — or the entire school — in a single click.
+        </p>
+
+        <div className="flex flex-wrap items-end gap-3">
+          <div className="flex flex-col gap-1">
+            <label className="text-xs font-medium text-slate-600">Scope</label>
+            <select
+              value={batchClassId}
+              onChange={(e) => { setBatchClassId(e.target.value); setBatchSubmitted(false); }}
+              disabled={!sessionId}
+              className="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-700 focus:outline-none disabled:bg-slate-50 disabled:text-slate-400"
+            >
+              <option value="">Entire school</option>
+              {classes.map((c) => <option key={c.id} value={c.id}>{c.name} only</option>)}
+            </select>
+          </div>
+
+          <div className="flex flex-col gap-1">
+            <label className="text-xs font-medium text-slate-600">Term</label>
+            <select
+              value={batchTerm}
+              onChange={(e) => { setBatchTerm(e.target.value as typeof batchTerm); setBatchSubmitted(false); }}
+              className="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-700 focus:outline-none"
+            >
+              <option value="FIRST">First</option>
+              <option value="SECOND">Second</option>
+              <option value="THIRD">Third</option>
+            </select>
+          </div>
+
+          <button
+            disabled={!sessionId || batchLoading}
+            onClick={() => setBatchSubmitted(true)}
+            className="rounded-lg bg-brand-700 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-brand-800 disabled:opacity-50"
+          >
+            {batchLoading ? 'Generating…' : 'Generate Batch'}
+          </button>
+        </div>
+
+        {batchSubmitted && batchLoading && (
+          <div className="mt-4 flex items-center gap-2 text-sm text-slate-500">
+            <span className="h-4 w-4 animate-spin rounded-full border-2 border-brand-200 border-t-brand-700" />
+            Compiling report cards — this may take a moment…
+          </div>
+        )}
+
+        {batchSubmitted && !batchLoading && batch && (
+          batch.cards.length > 0 ? (
+            <div className="mt-4 flex flex-wrap items-center gap-3 rounded-lg bg-brand-50 px-4 py-3">
+              <p className="text-sm text-brand-900">
+                <span className="font-semibold">{batch.cards.length}</span> report card{batch.cards.length !== 1 ? 's' : ''} ready
+                {batch.skipped > 0 && <span className="text-brand-700"> · {batch.skipped} student{batch.skipped !== 1 ? 's' : ''} skipped (no scores for this term)</span>}
+              </p>
+              <div className="flex items-center gap-2">
+                <PDFDownloadLink
+                  document={<ClassReportCardsPDF cards={batch.cards} schoolName={schoolName} motto={motto} batchLabel={batchLabel} />}
+                  fileName={`report-cards-${batchLabel.replace(/\s/g, '-').toLowerCase()}-${batchTerm.toLowerCase()}-term.pdf`}
+                >
+                  {({ loading }) => (
+                    <button className="flex items-center gap-2 rounded-lg bg-brand-700 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-800 disabled:opacity-60">
+                      <Download className="h-4 w-4" />
+                      {loading ? 'Preparing…' : `Download All (${batch.cards.length})`}
+                    </button>
+                  )}
+                </PDFDownloadLink>
+                <BlobProvider document={<ClassReportCardsPDF cards={batch.cards} schoolName={schoolName} motto={motto} batchLabel={batchLabel} />}>
+                  {({ url, loading }) => (
+                    <a
+                      href={url ?? '#'}
+                      target="_blank"
+                      rel="noreferrer"
+                      className={`flex items-center gap-2 rounded-lg border border-brand-200 bg-white px-4 py-2 text-sm font-medium text-brand-800 hover:bg-brand-50 ${loading ? 'pointer-events-none opacity-60' : ''}`}
+                    >
+                      <Eye className="h-4 w-4" />
+                      Preview
+                    </a>
+                  )}
+                </BlobProvider>
+              </div>
+            </div>
+          ) : (
+            <div className="mt-4 rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-800">
+              No report cards could be generated — no scores found for {batchLabel} in the {batchTerm.toLowerCase()} term.
+            </div>
+          )
+        )}
       </div>
 
       {/* Report card display */}
