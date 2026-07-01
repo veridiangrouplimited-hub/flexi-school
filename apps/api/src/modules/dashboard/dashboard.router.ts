@@ -13,14 +13,14 @@ dashboardRouter.get('/stats', async (req, res, next) => {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
 
-      const [studentCount, presentToday, totalToday, outstanding, noticeCount, recentNotices] =
+      const [studentCount, presentToday, totalToday, invoices, noticeCount, recentNotices, trendDates, classes, recentPayments] =
         await Promise.all([
           prisma.student.count({ where: { tenantId } }),
           prisma.attendance.count({ where: { tenantId, date: today, status: 'PRESENT' } }),
           prisma.attendance.count({ where: { tenantId, date: today } }),
           prisma.invoice.findMany({
-            where:  { tenantId, status: { in: ['UNPAID', 'PARTIAL', 'OVERDUE'] } },
-            select: { totalAmount: true },
+            where:  { tenantId },
+            select: { totalAmount: true, status: true },
           }),
           prisma.notice.count({ where: { tenantId } }),
           prisma.notice.findMany({
@@ -29,16 +29,89 @@ dashboardRouter.get('/stats', async (req, res, next) => {
             take:    4,
             select:  { id: true, title: true, category: true, isPinned: true, publishedAt: true },
           }),
+          // Last 7 distinct dates that have attendance records (skips weekends/holidays)
+          prisma.attendance.findMany({
+            where:    { tenantId },
+            select:   { date: true },
+            distinct: ['date'],
+            orderBy:  { date: 'desc' },
+            take:     7,
+          }),
+          prisma.class.findMany({
+            where:   { tenantId, session: { isCurrent: true } },
+            include: { _count: { select: { students: true } } },
+            orderBy: { name: 'asc' },
+          }),
+          prisma.payment.findMany({
+            where:   { tenantId, status: 'COMPLETED' },
+            orderBy: [{ paidAt: 'desc' }, { createdAt: 'desc' }],
+            take:    5,
+            include: {
+              invoice: {
+                select: {
+                  term: true,
+                  student: { select: { admissionNo: true, user: { select: { profile: true } } } },
+                },
+              },
+            },
+          }),
         ]);
+
+      // Attendance trend across the marked dates
+      const dates = trendDates.map(d => d.date);
+      const trendRecords = dates.length
+        ? await prisma.attendance.findMany({
+            where:  { tenantId, date: { in: dates } },
+            select: { date: true, status: true },
+          })
+        : [];
+      const trendMap = new Map<string, { present: number; total: number }>();
+      for (const r of trendRecords) {
+        const key = r.date.toISOString().slice(0, 10);
+        const e = trendMap.get(key) ?? { present: 0, total: 0 };
+        e.total += 1;
+        if (r.status === 'PRESENT') e.present += 1;
+        trendMap.set(key, e);
+      }
+      const attendanceTrend = [...trendMap.entries()]
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([date, v]) => ({
+          date,
+          pct: v.total > 0 ? Math.round((v.present / v.total) * 100) : 0,
+          present: v.present,
+          total: v.total,
+        }));
+
+      // Fee stats
+      const invoiced = invoices.reduce((s, i) => s + Number(i.totalAmount), 0);
+      const outstandingFees = invoices
+        .filter(i => i.status === 'UNPAID' || i.status === 'PARTIAL' || i.status === 'OVERDUE')
+        .reduce((s, i) => s + Number(i.totalAmount), 0);
+      const collectedFees = invoices
+        .filter(i => i.status === 'PAID')
+        .reduce((s, i) => s + Number(i.totalAmount), 0);
 
       return res.json({
         role,
         studentCount,
-        attendancePct:   totalToday > 0 ? Math.round((presentToday / totalToday) * 100) : null,
+        attendancePct:    totalToday > 0 ? Math.round((presentToday / totalToday) * 100) : null,
         attendanceMarked: totalToday > 0,
-        outstandingFees: outstanding.reduce((s, i) => s + Number(i.totalAmount), 0),
+        outstandingFees,
+        collectedFees,
+        invoicedFees:     invoiced,
         noticeCount,
         recentNotices,
+        attendanceTrend,
+        classDistribution: classes.map(c => ({ name: c.name, count: c._count.students })),
+        recentPayments: recentPayments.map(p => ({
+          student:  ((p.invoice.student.user?.profile as Record<string, unknown>)?.fullName as string)
+                      ?? p.invoice.student.admissionNo,
+          amount:   Number(p.amount),
+          currency: p.currency,
+          gateway:  p.gateway,
+          term:     p.invoice.term,
+          paidAt:   p.paidAt ?? p.createdAt,
+        })),
       });
     }
 
