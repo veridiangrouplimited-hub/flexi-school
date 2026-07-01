@@ -77,7 +77,13 @@ export function App() {
         position="top-right"
         toastOptions={{
           duration: 3500,
-          style: { borderRadius: '8px', fontSize: '13px' },
+          style: {
+            borderRadius: '10px',
+            fontSize: '13px',
+            boxShadow: '0 4px 12px rgb(15 23 42 / 0.12)',
+            border: '1px solid #e2e8f0',
+          },
+          success: { iconTheme: { primary: '#15803d', secondary: '#ffffff' } },
         }}
       />
       <BrowserRouter>

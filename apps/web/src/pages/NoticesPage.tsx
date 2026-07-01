@@ -170,6 +170,7 @@ export function NoticesPage() {
                     e.stopPropagation();
                     if (confirm('Delete this notice?')) remove.mutate(n.id);
                   }}
+                  aria-label={`Delete notice: ${n.title}`}
                   className="flex-shrink-0 rounded-lg p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-600"
                 >
                   <Trash2 className="h-4 w-4" />

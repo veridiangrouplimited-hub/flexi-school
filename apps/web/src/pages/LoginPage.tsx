@@ -49,19 +49,28 @@ export function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
-      <div className="w-full max-w-md">
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-slate-50 px-4">
+      {/* Decorative backdrop */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0"
+        style={{
+          background:
+            'radial-gradient(ellipse 60% 50% at 50% -10%, rgba(21,128,61,0.12), transparent), radial-gradient(ellipse 50% 40% at 90% 110%, rgba(21,128,61,0.08), transparent)',
+        }}
+      />
+      <div className="relative w-full max-w-md animate-fade-in-up">
         {/* Logo */}
         <div className="mb-8 flex flex-col items-center gap-2 text-center">
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-brand-700 text-white shadow-sm">
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-brand-600 to-brand-800 text-white shadow-lg shadow-brand-700/20">
             <GraduationCap className="h-6 w-6" />
           </div>
-          <h1 className="font-display text-2xl font-semibold text-slate-900">FlexiSchool</h1>
+          <h1 className="font-display text-3xl text-slate-900">FlexiSchool</h1>
           <p className="text-sm text-slate-500">Sign in to your school portal</p>
         </div>
 
         {/* Card */}
-        <div className="rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
+        <div className="rounded-2xl border border-slate-200/80 bg-white p-8 shadow-card-lg">
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             {error && (
               <div className="rounded-lg border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700">

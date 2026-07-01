@@ -49,7 +49,20 @@ export function DashboardPage() {
   });
 
   if (isLoading) {
-    return <div className="py-12 text-center text-sm text-slate-400">Loading dashboard…</div>;
+    return (
+      <div className="animate-pulse space-y-6">
+        <div className="space-y-2">
+          <div className="h-7 w-64 rounded-lg bg-slate-200" />
+          <div className="h-4 w-48 rounded bg-slate-100" />
+        </div>
+        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+          {[...Array(4)].map((_, i) => <div key={i} className="h-32 rounded-xl bg-slate-100" />)}
+        </div>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          {[...Array(4)].map((_, i) => <div key={i} className="h-12 rounded-xl bg-slate-100" />)}
+        </div>
+      </div>
+    );
   }
 
   if (role === 'SCHOOL_ADMIN' || role === 'PRINCIPAL') {
@@ -76,9 +89,12 @@ function AdminDashboard({ stats, schoolName, tier, flags }: {
 }) {
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-xl font-semibold text-slate-900">{schoolName}</h2>
-        <p className="mt-0.5 text-sm text-slate-500">School Admin Dashboard · {(tier ?? '').replace(/_/g, ' ')} Plan</p>
+      <div className="flex flex-wrap items-end justify-between gap-2">
+        <div>
+          <h2 className="font-display text-2xl text-slate-900">{schoolName}</h2>
+          <p className="mt-0.5 text-sm text-slate-500">School Admin Dashboard · {(tier ?? '').replace(/_/g, ' ')} Plan</p>
+        </div>
+        <p className="text-sm font-medium text-slate-500">{todayLabel()}</p>
       </div>
 
       {/* KPI cards */}
@@ -131,11 +147,14 @@ function AdminDashboard({ stats, schoolName, tier, flags }: {
 function TeacherDashboard({ stats, schoolName }: { stats: TeacherStats | undefined; schoolName: string }) {
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-xl font-semibold text-slate-900">{schoolName}</h2>
-        <p className="mt-0.5 text-sm text-slate-500">
-          Teacher Dashboard {stats?.sessionName ? `· ${stats.sessionName}` : ''}
-        </p>
+      <div className="flex flex-wrap items-end justify-between gap-2">
+        <div>
+          <h2 className="font-display text-2xl text-slate-900">{schoolName}</h2>
+          <p className="mt-0.5 text-sm text-slate-500">
+            Teacher Dashboard {stats?.sessionName ? `· ${stats.sessionName}` : ''}
+          </p>
+        </div>
+        <p className="text-sm font-medium text-slate-500">{todayLabel()}</p>
       </div>
 
       {/* My classes */}
@@ -195,11 +214,14 @@ function StudentDashboard({ stats, schoolName }: { stats: StudentStats | undefin
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-xl font-semibold text-slate-900">{schoolName}</h2>
-        <p className="mt-0.5 text-sm text-slate-500">
-          Student Dashboard {stats?.sessionName ? `· ${stats.sessionName}` : ''}
-        </p>
+      <div className="flex flex-wrap items-end justify-between gap-2">
+        <div>
+          <h2 className="font-display text-2xl text-slate-900">{schoolName}</h2>
+          <p className="mt-0.5 text-sm text-slate-500">
+            Student Dashboard {stats?.sessionName ? `· ${stats.sessionName}` : ''}
+          </p>
+        </div>
+        <p className="text-sm font-medium text-slate-500">{todayLabel()}</p>
       </div>
 
       {/* KPI cards */}
@@ -311,13 +333,15 @@ function StatCard({ icon: Icon, label, value, sub, highlight = false }: {
   icon: React.ElementType; label: string; value: string; sub?: string; highlight?: boolean;
 }) {
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-      <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-lg bg-slate-50">
-        <Icon className="h-4 w-4 text-slate-600" />
+    <div className="group rounded-xl border border-slate-200 bg-white p-5 shadow-card transition-all duration-200 hover:-translate-y-0.5 hover:shadow-card-lg">
+      <div className={`mb-3 flex h-10 w-10 items-center justify-center rounded-xl transition-colors ${
+        highlight ? 'bg-amber-50 group-hover:bg-amber-100' : 'bg-brand-50 group-hover:bg-brand-100'
+      }`}>
+        <Icon className={`h-4.5 w-4.5 ${highlight ? 'text-amber-600' : 'text-brand-700'}`} />
       </div>
-      <p className="text-xs text-slate-500">{label}</p>
-      <p className={`mt-0.5 truncate text-sm font-semibold ${highlight ? 'text-amber-600' : 'text-slate-900'}`}>{value}</p>
-      {sub && <p className="mt-0.5 text-xs text-slate-400">{sub}</p>}
+      <p className="text-xs font-medium text-slate-500">{label}</p>
+      <p className={`mt-1 truncate text-2xl font-bold tracking-tight ${highlight ? 'text-amber-600' : 'text-slate-900'}`}>{value}</p>
+      {sub && <p className="mt-0.5 text-xs text-slate-500">{sub}</p>}
     </div>
   );
 }
@@ -334,7 +358,7 @@ function ActionCard({ to, icon: Icon, label, color }: { to: string; icon: React.
   return (
     <Link
       to={to}
-      className={`flex items-center gap-3 rounded-xl border px-4 py-3.5 text-sm font-medium transition-all shadow-sm ${COLOR_MAP[color] ?? COLOR_MAP.slate}`}
+      className={`flex items-center gap-3 rounded-xl border px-4 py-3.5 text-sm font-medium shadow-card transition-all duration-150 hover:-translate-y-0.5 hover:shadow-card-lg ${COLOR_MAP[color] ?? COLOR_MAP.slate}`}
     >
       <Icon className="h-4 w-4 flex-shrink-0" />
       {label}
@@ -346,18 +370,22 @@ function NoticeRow({ notice: n }: { notice: RecentNotice }) {
   return (
     <Link
       to="/notices"
-      className="flex items-center gap-3 rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm hover:border-brand-200 transition-colors"
+      className="group flex items-center gap-3 rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm shadow-card transition-all hover:border-brand-200 hover:shadow-card-lg"
     >
       {n.isPinned && <Pin className="h-3.5 w-3.5 flex-shrink-0 text-brand-600" />}
       <span className={`flex-shrink-0 rounded-full px-2 py-0.5 text-xs font-semibold ${CAT_COLORS[n.category] ?? 'bg-slate-100 text-slate-600'}`}>
         {n.category}
       </span>
-      <span className="min-w-0 flex-1 truncate font-medium text-slate-800">{n.title}</span>
-      <span className="flex-shrink-0 text-xs text-slate-400">
+      <span className="min-w-0 flex-1 truncate font-medium text-slate-800 transition-colors group-hover:text-brand-800">{n.title}</span>
+      <span className="flex-shrink-0 text-xs text-slate-500">
         {new Date(n.publishedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
       </span>
     </Link>
   );
+}
+
+function todayLabel(): string {
+  return new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
 }
 
 function scoreGrade(total: number): string {
