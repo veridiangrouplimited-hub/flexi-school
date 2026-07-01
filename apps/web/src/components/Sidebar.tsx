@@ -77,10 +77,7 @@ export function Sidebar() {
             className="h-9 w-9 rounded-xl object-cover shadow-sm"
           />
         ) : (
-          <div
-            className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-brand-600 to-brand-800 text-sm font-bold text-white shadow-sm"
-            style={branding.primaryColor ? { background: branding.primaryColor } : undefined}
-          >
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-brand-600 to-brand-800 text-sm font-bold text-white shadow-sm">
             {name.charAt(0).toUpperCase()}
           </div>
         )}

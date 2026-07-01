@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { TenantProvider } from './context/TenantContext';
 import { useAuthStore } from './stores/authStore';
 import { useTenantStore } from './stores/tenantStore';
+import './stores/themeStore'; // rehydrates + applies the saved color theme on boot
 import { AppShell } from './components/layout/AppShell';
 import { LoginPage } from './pages/LoginPage';
 import { DashboardPage } from './pages/DashboardPage';

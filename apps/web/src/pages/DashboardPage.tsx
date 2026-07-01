@@ -510,8 +510,8 @@ function TrendChart({ data }: { data: TrendPoint[] }) {
     <svg viewBox={`0 0 ${W} ${H}`} className="w-full" role="img" aria-label="Attendance trend chart">
       <defs>
         <linearGradient id="trendFill" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#15803d" stopOpacity="0.22" />
-          <stop offset="100%" stopColor="#15803d" stopOpacity="0.02" />
+          <stop offset="0%" stopColor="rgb(var(--brand-700))" stopOpacity="0.22" />
+          <stop offset="100%" stopColor="rgb(var(--brand-700))" stopOpacity="0.02" />
         </linearGradient>
       </defs>
 
@@ -525,13 +525,13 @@ function TrendChart({ data }: { data: TrendPoint[] }) {
 
       {/* Area + line */}
       <path d={areaPath} fill="url(#trendFill)" />
-      <path d={linePath} fill="none" stroke="#15803d" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+      <path d={linePath} fill="none" stroke="rgb(var(--brand-700))" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
 
       {/* Dots + labels */}
       {data.map((d, i) => (
         <g key={d.date}>
-          <circle cx={x(i)} cy={y(d.pct)} r="4" fill="#ffffff" stroke="#15803d" strokeWidth="2.5" />
-          <text x={x(i)} y={y(d.pct) - 9} fontSize="9.5" fontWeight="600" fill="#166534" textAnchor="middle">{d.pct}%</text>
+          <circle cx={x(i)} cy={y(d.pct)} r="4" fill="#ffffff" stroke="rgb(var(--brand-700))" strokeWidth="2.5" />
+          <text x={x(i)} y={y(d.pct) - 9} fontSize="9.5" fontWeight="600" fill="rgb(var(--brand-800))" textAnchor="middle">{d.pct}%</text>
           <text x={x(i)} y={H - 8} fontSize="9" fill="#94a3b8" textAnchor="middle">{dayLabel(d.date)}</text>
         </g>
       ))}
@@ -549,7 +549,7 @@ function Donut({ pct }: { pct: number }) {
       <circle cx={CX} cy={CY} r={R} fill="none" stroke="#fbbf24" strokeOpacity="0.35" strokeWidth={SW} />
       <circle
         cx={CX} cy={CY} r={R} fill="none"
-        stroke="#15803d" strokeWidth={SW} strokeLinecap="round"
+        stroke="rgb(var(--brand-700))" strokeWidth={SW} strokeLinecap="round"
         strokeDasharray={`${filled} ${circ - filled}`}
         transform={`rotate(-90 ${CX} ${CY})`}
       />
