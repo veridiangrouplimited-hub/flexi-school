@@ -289,11 +289,11 @@ async function main() {
 
   // ── Fee categories ────────────────────────────────────────────────────────
   const [catFees, catBooks, catUniform, catLab, catExam] = await Promise.all([
-    prisma.feeCategory.create({ data: { tenantId: tenant.id, name: 'School Fees',   description: 'Tuition for the term',            defaultAmount: 500.00 } }),
-    prisma.feeCategory.create({ data: { tenantId: tenant.id, name: 'Books',         description: 'Prescribed textbooks & materials', defaultAmount:  80.00 } }),
-    prisma.feeCategory.create({ data: { tenantId: tenant.id, name: 'Uniform',       description: 'School uniform set',               defaultAmount:  60.00 } }),
-    prisma.feeCategory.create({ data: { tenantId: tenant.id, name: 'Lab Fee',       description: 'Science laboratory usage',         defaultAmount:  40.00 } }),
-    prisma.feeCategory.create({ data: { tenantId: tenant.id, name: 'Exam Fee',      description: 'End-of-term examination fee',      defaultAmount:  30.00 } }),
+    prisma.feeCategory.create({ data: { tenantId: tenant.id, name: 'School Fees',   description: 'Tuition for the term',            defaultAmount: 250000.00 } }),
+    prisma.feeCategory.create({ data: { tenantId: tenant.id, name: 'Books',         description: 'Prescribed textbooks & materials', defaultAmount:  40000.00 } }),
+    prisma.feeCategory.create({ data: { tenantId: tenant.id, name: 'Uniform',       description: 'School uniform set',               defaultAmount:  30000.00 } }),
+    prisma.feeCategory.create({ data: { tenantId: tenant.id, name: 'Lab Fee',       description: 'Science laboratory usage',         defaultAmount:  20000.00 } }),
+    prisma.feeCategory.create({ data: { tenantId: tenant.id, name: 'Exam Fee',      description: 'End-of-term examination fee',      defaultAmount:  15000.00 } }),
   ]);
 
   // ── Invoice 1 — PAID (student1, First Term) ───────────────────────────────
@@ -304,16 +304,16 @@ async function main() {
       sessionId:   session.id,
       term:        'FIRST',
       status:      'PAID',
-      totalAmount: 710.00,
+      totalAmount: 355000.00,
       dueDate:     new Date('2024-10-01'),
       notes:       'Full payment received',
       items: {
         create: [
-          { tenantId: tenant.id, feeCategoryId: catFees.id,    description: 'First Term Tuition', amount: 500.00 },
-          { tenantId: tenant.id, feeCategoryId: catBooks.id,   description: null,                 amount:  80.00 },
-          { tenantId: tenant.id, feeCategoryId: catUniform.id, description: null,                 amount:  60.00 },
-          { tenantId: tenant.id, feeCategoryId: catExam.id,    description: null,                 amount:  30.00 },
-          { tenantId: tenant.id, feeCategoryId: catLab.id,     description: null,                 amount:  40.00 },
+          { tenantId: tenant.id, feeCategoryId: catFees.id,    description: 'First Term Tuition', amount: 250000.00 },
+          { tenantId: tenant.id, feeCategoryId: catBooks.id,   description: null,                 amount:  40000.00 },
+          { tenantId: tenant.id, feeCategoryId: catUniform.id, description: null,                 amount:  30000.00 },
+          { tenantId: tenant.id, feeCategoryId: catExam.id,    description: null,                 amount:  15000.00 },
+          { tenantId: tenant.id, feeCategoryId: catLab.id,     description: null,                 amount:  20000.00 },
         ],
       },
     },
@@ -324,8 +324,8 @@ async function main() {
     data: {
       tenantId:      tenant.id,
       invoiceId:     invoice1.id,
-      amount:        710.00,
-      currency:      'USD',
+      amount:        355000.00,
+      currency:      'NGN',
       gateway:       'PAYPAL',
       gatewayRef:    'PAYPAL-DEMO-ORDER-001',
       gatewayStatus: 'COMPLETED',
@@ -342,15 +342,15 @@ async function main() {
       sessionId:   session.id,
       term:        'FIRST',
       status:      'UNPAID',
-      totalAmount: 640.00,
+      totalAmount: 325000.00,
       dueDate:     new Date('2024-10-01'),
       notes:       null,
       items: {
         create: [
-          { tenantId: tenant.id, feeCategoryId: catFees.id,    description: 'First Term Tuition', amount: 500.00 },
-          { tenantId: tenant.id, feeCategoryId: catBooks.id,   description: null,                 amount:  80.00 },
-          { tenantId: tenant.id, feeCategoryId: catExam.id,    description: null,                 amount:  30.00 },
-          { tenantId: tenant.id, feeCategoryId: catLab.id,     description: null,                 amount:  40.00 },
+          { tenantId: tenant.id, feeCategoryId: catFees.id,    description: 'First Term Tuition', amount: 250000.00 },
+          { tenantId: tenant.id, feeCategoryId: catBooks.id,   description: null,                 amount:  40000.00 },
+          { tenantId: tenant.id, feeCategoryId: catExam.id,    description: null,                 amount:  15000.00 },
+          { tenantId: tenant.id, feeCategoryId: catLab.id,     description: null,                 amount:  20000.00 },
         ],
       },
     },
@@ -364,15 +364,15 @@ async function main() {
       sessionId:   session.id,
       term:        'SECOND',
       status:      'OVERDUE',
-      totalAmount: 580.00,
+      totalAmount: 290000.00,
       dueDate:     new Date('2025-02-01'),
       notes:       'Payment overdue — please settle immediately',
       items: {
         create: [
-          { tenantId: tenant.id, feeCategoryId: catFees.id,  description: 'Second Term Tuition', amount: 500.00 },
-          { tenantId: tenant.id, feeCategoryId: catExam.id,  description: null,                  amount:  30.00 },
-          { tenantId: tenant.id, feeCategoryId: catLab.id,   description: null,                  amount:  40.00 },
-          { tenantId: tenant.id, feeCategoryId: catUniform.id, description: 'Replacement set',   amount:  10.00 },
+          { tenantId: tenant.id, feeCategoryId: catFees.id,  description: 'Second Term Tuition', amount: 250000.00 },
+          { tenantId: tenant.id, feeCategoryId: catExam.id,  description: null,                  amount:  15000.00 },
+          { tenantId: tenant.id, feeCategoryId: catLab.id,   description: null,                  amount:  20000.00 },
+          { tenantId: tenant.id, feeCategoryId: catUniform.id, description: 'Replacement set',   amount:   5000.00 },
         ],
       },
     },
@@ -475,7 +475,7 @@ async function main() {
       const isPaid   = invIdx % 2 === 0;
       const isOverdue = invIdx % 5 === 4;
       const status   = isPaid ? 'PAID' : (isOverdue ? 'OVERDUE' : 'UNPAID');
-      const total    = 640.00;
+      const total    = 325000.00;
 
       const inv = await prisma.invoice.create({
         data: {
@@ -488,10 +488,10 @@ async function main() {
           dueDate:     new Date('2024-10-01'),
           items: {
             create: [
-              { tenantId: tenant.id, feeCategoryId: catFees.id,   description: 'First Term Tuition', amount: 500.00 },
-              { tenantId: tenant.id, feeCategoryId: catBooks.id,  description: null, amount: 80.00 },
-              { tenantId: tenant.id, feeCategoryId: catExam.id,   description: null, amount: 30.00 },
-              { tenantId: tenant.id, feeCategoryId: catLab.id,    description: null, amount: 30.00 },
+              { tenantId: tenant.id, feeCategoryId: catFees.id,   description: 'First Term Tuition', amount: 250000.00 },
+              { tenantId: tenant.id, feeCategoryId: catBooks.id,  description: null, amount: 40000.00 },
+              { tenantId: tenant.id, feeCategoryId: catExam.id,   description: null, amount: 15000.00 },
+              { tenantId: tenant.id, feeCategoryId: catLab.id,    description: null, amount: 20000.00 },
             ],
           },
         },
@@ -503,7 +503,7 @@ async function main() {
             tenantId:      tenant.id,
             invoiceId:     inv.id,
             amount:        total,
-            currency:      'USD',
+            currency:      'NGN',
             gateway:       invIdx % 4 === 0 ? 'CASH' : 'BANK_TRANSFER',
             status:        'COMPLETED',
             paidAt:        new Date('2024-09-20'),

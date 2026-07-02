@@ -936,7 +936,7 @@ function todayLabel(): string {
 }
 
 function money(n: number): string {
-  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(n);
+  return new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN', maximumFractionDigits: 0 }).format(n);
 }
 
 function shortDate(d: string): string {

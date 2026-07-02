@@ -97,7 +97,11 @@ interface Invoice {
 }
 
 function fmt(amount: number, currency: string) {
-  return new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(amount);
+  // Use the currency CODE in PDFs — the naira sign (₦) is not in the
+  // standard Helvetica glyph set and would render as a missing character.
+  return new Intl.NumberFormat('en-NG', {
+    style: 'currency', currency, currencyDisplay: 'code', maximumFractionDigits: 0,
+  }).format(amount);
 }
 
 function fmtDate(d: string | null) {

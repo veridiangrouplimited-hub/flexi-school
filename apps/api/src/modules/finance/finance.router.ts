@@ -7,8 +7,11 @@ import { createPayPalOrder, capturePayPalOrder } from './paypal.service';
 
 export const financeRouter = Router();
 
-const CURRENCY = process.env.FINANCE_CURRENCY ?? 'USD';
+const CURRENCY = process.env.FINANCE_CURRENCY ?? 'NGN';
 const FRONTEND = process.env.FRONTEND_URL       ?? 'http://localhost:5173';
+
+// PayPal does not support NGN — charge the USD equivalent at a configured rate.
+const NGN_USD_RATE = Number(process.env.NGN_USD_RATE ?? 1500);
 
 // ── Fee categories ───────────────────────────────────────────────────────────
 
@@ -201,13 +204,20 @@ financeRouter.post('/invoices/:id/checkout', requirePermission('finance:write'),
       return res.json({ success: true, gateway });
     }
 
-    // PayPal — create order and return approval URL
+    // PayPal — create order and return approval URL.
+    // PayPal doesn't support NGN, so charge the USD equivalent.
     const returnUrl = `${FRONTEND}/finance/payment/success?invoiceId=${inv.id}`;
     const cancelUrl = `${FRONTEND}/finance/payment/cancel?invoiceId=${inv.id}`;
 
+    const isNgn = CURRENCY === 'NGN';
+    const paypalAmount   = isNgn
+      ? (Number(inv.totalAmount) / NGN_USD_RATE).toFixed(2)
+      : Number(inv.totalAmount).toFixed(2);
+    const paypalCurrency = isNgn ? 'USD' : CURRENCY;
+
     const { orderId, approvalUrl } = await createPayPalOrder({
-      amount:    Number(inv.totalAmount).toFixed(2),
-      currency:  CURRENCY,
+      amount:    paypalAmount,
+      currency:  paypalCurrency,
       invoiceId: inv.id,
       returnUrl,
       cancelUrl,

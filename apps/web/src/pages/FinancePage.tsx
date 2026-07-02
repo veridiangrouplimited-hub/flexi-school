@@ -308,7 +308,7 @@ export function FinancePage() {
 }
 
 function fmt(amount: number, currency: string) {
-  return new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(amount);
+  return new Intl.NumberFormat('en-NG', { style: 'currency', currency, maximumFractionDigits: 0 }).format(amount);
 }
 
 function SumCard({ label, value, color, suffix = '' }: { label: string; value: string; color: string; suffix?: string }) {

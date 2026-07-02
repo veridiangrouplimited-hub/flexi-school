@@ -121,13 +121,15 @@ academicRouter.get('/report-cards', async (req, res, next) => {
 // Scores — list
 academicRouter.get('/scores', async (req, res, next) => {
   try {
-    const { studentId, sessionId, term } = req.query;
+    const { studentId, sessionId, term, classId, subjectId } = req.query;
     const scores = await prisma.score.findMany({
       where: {
         tenantId: req.tenant.id,
         ...(studentId ? { studentId: studentId as string } : {}),
+        ...(subjectId ? { subjectId: subjectId as string } : {}),
         ...(sessionId ? { sessionId: sessionId as string } : {}),
         ...(term      ? { term: term as 'FIRST' | 'SECOND' | 'THIRD' } : {}),
+        ...(classId   ? { student: { classId: classId as string } } : {}),
       },
       include: { subject: { select: { name: true, code: true } } },
     });
