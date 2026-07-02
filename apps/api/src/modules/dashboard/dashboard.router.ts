@@ -26,8 +26,8 @@ dashboardRouter.get('/stats', async (req, res, next) => {
           prisma.notice.findMany({
             where:   { tenantId },
             orderBy: [{ isPinned: 'desc' }, { publishedAt: 'desc' }],
-            take:    4,
-            select:  { id: true, title: true, category: true, isPinned: true, publishedAt: true },
+            take:    6,
+            select:  { id: true, title: true, body: true, category: true, isPinned: true, publishedAt: true },
           }),
           // Last 7 distinct dates that have attendance records (skips weekends/holidays)
           prisma.attendance.findMany({
