@@ -715,7 +715,7 @@ function TeacherDashboard({ stats, schoolName }: { stats: TeacherStats | undefin
             <h3 className="text-sm font-semibold text-slate-700">Latest Notices</h3>
             <Link to="/notices" className="text-xs text-brand-700 hover:underline">View all</Link>
           </div>
-          <div className="space-y-2">
+          <div className="grid items-start gap-2 lg:grid-cols-2">
             {stats?.recentNotices?.map(n => <NoticeRow key={n.id} notice={n} />)}
           </div>
         </div>
@@ -813,7 +813,7 @@ function StudentDashboard({ stats, schoolName }: { stats: StudentStats | undefin
             <h3 className="text-sm font-semibold text-slate-700">Latest Notices</h3>
             <Link to="/notices" className="text-xs text-brand-700 hover:underline">View all</Link>
           </div>
-          <div className="space-y-2">
+          <div className="grid items-start gap-2 lg:grid-cols-2">
             {stats?.recentNotices?.map(n => <NoticeRow key={n.id} notice={n} />)}
           </div>
         </div>
@@ -840,7 +840,7 @@ function ParentDashboard({ stats, schoolName }: { stats: DashStats | undefined; 
       {((stats as { recentNotices?: RecentNotice[] })?.recentNotices?.length ?? 0) > 0 && (
         <div>
           <h3 className="mb-3 text-sm font-semibold text-slate-700">Latest Notices</h3>
-          <div className="space-y-2">
+          <div className="grid items-start gap-2 lg:grid-cols-2">
             {(stats as { recentNotices?: RecentNotice[] })?.recentNotices?.map(n => <NoticeRow key={n.id} notice={n} />)}
           </div>
         </div>

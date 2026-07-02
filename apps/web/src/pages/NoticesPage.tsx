@@ -138,11 +138,11 @@ export function NoticesPage() {
         </div>
       )}
 
-      <div className="space-y-3">
+      <div className="grid items-start gap-3 lg:grid-cols-2">
         {notices.map(n => (
           <div
             key={n.id}
-            className={`rounded-xl border bg-white shadow-sm ${n.isPinned ? 'border-brand-200' : 'border-slate-200'}`}
+            className={`rounded-xl border bg-white shadow-sm ${n.isPinned ? 'border-brand-200' : 'border-slate-200'} ${expanded === n.id ? 'lg:col-span-2' : ''}`}
           >
             <div
               className="flex cursor-pointer items-start gap-3 px-5 py-4"

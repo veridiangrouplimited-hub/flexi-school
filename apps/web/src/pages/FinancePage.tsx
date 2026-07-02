@@ -165,9 +165,9 @@ export function FinancePage() {
         </div>
       )}
 
-      <div className="space-y-3">
+      <div className="grid items-start gap-3 lg:grid-cols-2">
         {filteredInvoices.map(inv => (
-          <div key={inv.id} className="rounded-xl border border-slate-200 bg-white shadow-sm">
+          <div key={inv.id} className={`rounded-xl border border-slate-200 bg-white shadow-sm ${expanded === inv.id ? 'lg:col-span-2' : ''}`}>
             {/* Row */}
             <div
               className="flex cursor-pointer items-center gap-4 px-5 py-4"

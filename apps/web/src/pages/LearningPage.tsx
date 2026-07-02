@@ -252,9 +252,9 @@ function NotesTab({ notes, isLoading, isTeacher, classes, subjects, sessionId, o
         <EmptyState icon={BookOpen} message="No class notes yet." />
       )}
 
-      <div className="space-y-3">
+      <div className="grid items-start gap-3 lg:grid-cols-2">
         {notes.map(n => (
-          <div key={n.id} className="rounded-xl border border-slate-200 bg-white shadow-card">
+          <div key={n.id} className={`rounded-xl border border-slate-200 bg-white shadow-card ${expanded === n.id ? 'lg:col-span-2' : ''}`}>
             <button
               onClick={() => setExpanded(expanded === n.id ? null : n.id)}
               className="flex w-full items-center gap-3 px-5 py-4 text-left"
@@ -422,9 +422,9 @@ function AssignmentsTab({ assignments, isLoading, isTeacher, classes, subjects, 
         <EmptyState icon={ClipboardCheck} message="No assignments posted yet." />
       )}
 
-      <div className="space-y-3">
+      <div className="grid items-start gap-3 lg:grid-cols-2">
         {assignments.map(a => (
-          <div key={a.id} className="rounded-xl border border-slate-200 bg-white shadow-card">
+          <div key={a.id} className={`rounded-xl border border-slate-200 bg-white shadow-card ${expanded === a.id ? 'lg:col-span-2' : ''}`}>
             <button
               onClick={() => setExpanded(expanded === a.id ? null : a.id)}
               className="flex w-full items-center gap-3 px-5 py-4 text-left"
